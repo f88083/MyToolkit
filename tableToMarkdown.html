@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 表格生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        body { 
+            font-family: 'Noto Sans TC', sans-serif; 
+            background-color: #f8fafc;
+        }
+
+        /* 表格編輯器樣式 */
+        .editor-container {
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            background: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        table.editor-table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 600px;
+        }
+
+        table.editor-table th, table.editor-table td {
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            min-width: 100px;
+            position: relative;
+            outline: none;
+            transition: background-color 0.2s;
+        }
+
+        /* 標頭樣式 */
+        table.editor-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: #334155;
+            text-align: center; /* 預設置中 */
+        }
+
+        table.editor-table td {
+            color: #475569;
+        }
+
+        /* 編輯時的聚焦樣式 */
+        table.editor-table th:focus, table.editor-table td:focus {
+            background-color: #e0e7ff;
+            border: 2px solid #6366f1;
+            z-index: 10;
+        }
+
+        /* Hover 效果 */
+        table.editor-table tbody tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        /* 右鍵選單 */
+        #contextMenu {
+            display: none;
+            position: absolute;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            min-width: 220px;
+            padding: 0.5rem 0;
+            animation: fadeIn 0.1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .menu-item {
+            padding: 0.6rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #334155;
+            font-size: 0.9rem;
+            transition: background 0.1s;
+        }
+
+        .menu-item:hover {
+            background-color: #eff6ff;
+            color: #2563eb;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background-color: #e2e8f0;
+            margin: 0.4rem 0;
+        }
+
+        .icon-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .shortcut-hint {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+
+        /* Markdown 預覽區 */
+        .md-output {
+            font-family: 'Monaco', 'Consolas', monospace;
+            white-space: pre;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-4 md:p-6 gap-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-table"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-800">Markdown 表格生成器</h1>
+                <p class="text-xs text-gray-500">右鍵點擊表格可進行編輯</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="resetTable()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
+                <i class="fas fa-undo mr-1"></i> 重置
+            </button>
+            <button onclick="copyMarkdown()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
+                <i class="fas fa-copy"></i> 複製 Markdown
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+        
+        <!-- Editor Section -->
+        <div class="flex flex-col gap-2 min-h-0">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                    <i class="fas fa-edit mr-1"></i> 表格編輯區
+                </h2>
+                <span class="text-xs text-gray-400">支援點擊編輯</span>
+            </div>
+            
+            <div class="editor-container h-full relative" id="tableContainer">
+                <table class="editor-table" id="mainTable">
+                    <thead>
+                        <tr>
+                            <th contenteditable="true">標題 1</th>
+                            <th contenteditable="true">標題 2</th>
+                            <th contenteditable="true">標題 3</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td contenteditable="true">資料 A1</td>
+                            <td contenteditable="true">資料 A2</td>
+                            <td contenteditable="true">資料 A3</td>
+                        </tr>
+                        <tr>
+                            <td contenteditable="true">資料 B1</td>
+                            <td contenteditable="true">資料 B2</td>
+                            <td contenteditable="true">資料 B3</td>
+                        </tr>
+                        <tr>
+                            <td contenteditable="true">資料 C1</td>
+                            <td contenteditable="true">資料 C2</td>
+                            <td contenteditable="true">資料 C3</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="flex flex-col gap-2 min-h-0">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                    <i class="fab fa-markdown mr-1"></i> Markdown 預覽
+                </h2>
+                <span id="copyFeedback" class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
+            </div>
+            
+            <div class="h-full bg-slate-800 rounded-lg shadow-inner overflow-hidden flex flex-col">
+                <textarea id="mdOutput" class="w-full h-full bg-slate-800 text-gray-200 p-6 md-output resize-none focus:outline-none text-sm" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Context Menu -->
+    <div id="contextMenu">
+        <div class="menu-item" onclick="menuAction('insertRowAbove')">
+            <div class="icon-group">
+                <i class="fas fa-arrow-up text-indigo-500 w-4"></i>
+                <span>上方插入列</span>
+            </div>
+            <i class="fas fa-grip-lines text-gray-400" title="橫向 (列)"></i>
+        </div>
+        <div class="menu-item" onclick="menuAction('insertRowBelow')">
+            <div class="icon-group">
+                <i class="fas fa-arrow-down text-indigo-500 w-4"></i>
+                <span>下方插入列</span>
+            </div>
+            <i class="fas fa-grip-lines text-gray-400" title="橫向 (列)"></i>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="menuAction('insertColLeft')">
+            <div class="icon-group">
+                <i class="fas fa-arrow-left text-emerald-500 w-4"></i>
+                <span>左側插入欄</span>
+            </div>
+            <i class="fas fa-grip-lines-vertical text-gray-400" title="直向 (欄)"></i>
+        </div>
+        <div class="menu-item" onclick="menuAction('insertColRight')">
+            <div class="icon-group">
+                <i class="fas fa-arrow-right text-emerald-500 w-4"></i>
+                <span>右側插入欄</span>
+            </div>
+            <i class="fas fa-grip-lines-vertical text-gray-400" title="直向 (欄)"></i>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item text-red-600 hover:bg-red-50 hover:text-red-700" onclick="menuAction('deleteRow')">
+            <div class="icon-group">
+                <i class="fas fa-trash-alt w-4"></i>
+                <span>刪除此列</span>
+            </div>
+        </div>
+        <div class="menu-item text-red-600 hover:bg-red-50 hover:text-red-700" onclick="menuAction('deleteCol')">
+            <div class="icon-group">
+                <i class="fas fa-eraser w-4"></i>
+                <span>刪除此欄</span>
+            </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" onclick="menuAction('alignLeft')">
+            <div class="icon-group">
+                <i class="fas fa-align-left w-4 text-gray-400"></i>
+                <span>靠左對齊</span>
+            </div>
+        </div>
+        <div class="menu-item" onclick="menuAction('alignCenter')">
+            <div class="icon-group">
+                <i class="fas fa-align-center w-4 text-gray-400"></i>
+                <span>置中對齊</span>
+            </div>
+        </div>
+        <div class="menu-item" onclick="menuAction('alignRight')">
+            <div class="icon-group">
+                <i class="fas fa-align-right w-4 text-gray-400"></i>
+                <span>靠右對齊</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const table = document.getElementById('mainTable');
+        const mdOutput = document.getElementById('mdOutput');
+        const contextMenu = document.getElementById('contextMenu');
+        
+        // State to track right-clicked cell
+        let activeCell = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            generateMarkdown();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Live update on typing
+            table.addEventListener('input', generateMarkdown);
+            
+            // Context Menu Handling
+            table.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const cell = e.target.closest('th, td');
+                if (!cell) return;
+
+                activeCell = cell;
+                
+                // Position menu
+                const { clientX: mouseX, clientY: mouseY } = e;
+                
+                // Boundary check (keep menu inside viewport)
+                const menuWidth = 220;
+                const menuHeight = 350;
+                const winWidth = window.innerWidth;
+                const winHeight = window.innerHeight;
+
+                let x = mouseX;
+                let y = mouseY;
+
+                if (x + menuWidth > winWidth) x = winWidth - menuWidth - 10;
+                if (y + menuHeight > winHeight) y = winHeight - menuHeight - 10;
+
+                contextMenu.style.top = `${y}px`;
+                contextMenu.style.left = `${x}px`;
+                contextMenu.style.display = 'block';
+            });
+
+            // Close menu on click elsewhere
+            document.addEventListener('click', (e) => {
+                if (!contextMenu.contains(e.target)) {
+                    contextMenu.style.display = 'none';
+                }
+            });
+
+            // Handle Esc key to close menu
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') contextMenu.style.display = 'none';
+            });
+        }
+
+        function menuAction(action) {
+            if (!activeCell) return;
+            contextMenu.style.display = 'none';
+
+            const row = activeCell.parentElement;
+            const rowIndex = row.rowIndex;
+            const cellIndex = activeCell.cellIndex;
+            const tbody = table.querySelector('tbody');
+            const thead = table.querySelector('thead');
+            
+            switch(action) {
+                case 'insertRowAbove':
+                    insertRow(rowIndex);
+                    break;
+                case 'insertRowBelow':
+                    insertRow(rowIndex + 1);
+                    break;
+                case 'insertColLeft':
+                    insertCol(cellIndex);
+                    break;
+                case 'insertColRight':
+                    insertCol(cellIndex + 1);
+                    break;
+                case 'deleteRow':
+                    deleteRow(rowIndex);
+                    break;
+                case 'deleteCol':
+                    deleteCol(cellIndex);
+                    break;
+                case 'alignLeft':
+                    setAlign(cellIndex, 'left');
+                    break;
+                case 'alignCenter':
+                    setAlign(cellIndex, 'center');
+                    break;
+                case 'alignRight':
+                    setAlign(cellIndex, 'right');
+                    break;
+            }
+
+            generateMarkdown();
+        }
+
+        // --- Table Manipulation Functions ---
+
+        function createCell(type = 'td') {
+            const cell = document.createElement(type);
+            cell.contentEditable = "true";
+            cell.textContent = "";
+            return cell;
+        }
+
+        function insertRow(index) {
+            const cols = table.rows[0].cells.length;
+            const newRow = table.insertRow(index);
+            
+            // If inserting into thead (index 0), handle carefully, but usually we insert into tbody
+            // If index is 0 and it's a thead row, we usually mean insert above body row 0 or actually insert a new header?
+            // For simplicity, let's treat row 0 as Header. If user inserts above row 0, they make a new header? 
+            // Most MD tables only have 1 header. Let's assume standard behavior:
+            // If inserting at 0, we are prepending to whatever section we are in.
+            
+            // Correction: table.insertRow(index) inserts into the table structure globally across thead/tbody in some browsers,
+            // but safer to find the parent (thead or tbody) and insert there.
+            // Let's stick to: Row 0 is THEAD. Everything else is TBODY.
+            
+            if (index === 0) {
+                // Not allowing double headers easily in simple MD, let's just insert row 1 (top of body)
+                // Or if user really wants to insert above header, maybe blocked for this simple version.
+                // Let's redirect to index 1 if they try to insert above header to keep MD valid (Head + Body).
+                // But wait, user might want to add a row *below* header (which is index 1).
+                
+                // Let's standardise:
+                // If target is Header (rowIndex 0), Insert Above -> Do nothing or Alert (One header only).
+                // Insert Below -> Insert at top of TBody.
+                if (activeCell.parentElement.parentElement.tagName === 'THEAD') {
+                     // Insert into TBody at index 0
+                     const tbody = table.querySelector('tbody');
+                     const r = tbody.insertRow(0);
+                     for(let i=0; i<cols; i++) r.appendChild(createCell('td'));
+                     return;
+                }
+            }
+
+            for (let i = 0; i < cols; i++) {
+                newRow.appendChild(createCell('td'));
+            }
+        }
+
+        function insertCol(index) {
+            const rows = table.rows;
+            for (let i = 0; i < rows.length; i++) {
+                const cell = createCell(i === 0 ? 'th' : 'td');
+                // Insert at specific index
+                if (index >= rows[i].cells.length) {
+                    rows[i].appendChild(cell);
+                } else {
+                    rows[i].insertBefore(cell, rows[i].cells[index]);
+                }
+            }
+        }
+
+        function deleteRow(index) {
+            if (table.rows.length <= 2) { // Keep at least Header + 1 Row
+                alert("至少保留一列資料！");
+                return;
+            }
+            table.deleteRow(index);
+        }
+
+        function deleteCol(index) {
+            const rows = table.rows;
+            if (rows[0].cells.length <= 1) {
+                alert("至少保留一欄！");
+                return;
+            }
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].deleteCell(index);
+            }
+        }
+
+        function setAlign(colIndex, align) {
+            // Set data attribute on the Header cell to store alignment preference
+            const headerCell = table.rows[0].cells[colIndex];
+            headerCell.setAttribute('data-align', align);
+            
+            // Visual feedback
+            const rows = table.rows;
+            for(let i=0; i<rows.length; i++) {
+                rows[i].cells[colIndex].style.textAlign = align;
+            }
+        }
+
+        // --- Markdown Generation ---
+
+        function generateMarkdown() {
+            const rows = Array.from(table.rows);
+            if (rows.length === 0) return;
+
+            let md = "";
+            const colWidths = [];
+            const colCount = rows[0].cells.length;
+
+            // 1. Get Data and Calculate Widths (Optional for pretty print, here we do simple)
+            // Let's do a simple format first.
+            
+            // Process Header
+            const headers = Array.from(rows[0].cells).map(c => c.textContent.trim() || " ");
+            md += "| " + headers.join(" | ") + " |\n";
+
+            // Process Alignment / Separator Row
+            md += "|";
+            for (let i = 0; i < colCount; i++) {
+                const align = rows[0].cells[i].getAttribute('data-align') || 'left';
+                if (align === 'center') md += " :---: |";
+                else if (align === 'right') md += " ---: |";
+                else md += " --- |"; // default left
+            }
+            md += "\n";
+
+            // Process Body
+            for (let i = 1; i < rows.length; i++) {
+                const cells = Array.from(rows[i].cells).map(c => c.textContent.trim() || " ");
+                md += "| " + cells.join(" | ") + " |\n";
+            }
+
+            mdOutput.value = md;
+        }
+
+        function copyMarkdown() {
+            mdOutput.select();
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+            
+            const feedback = document.getElementById('copyFeedback');
+            feedback.style.opacity = '1';
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+            }, 2000);
+        }
+
+        function resetTable() {
+            if(confirm('確定要重置表格嗎？所有內容將會消失。')) {
+                const tbody = table.querySelector('tbody');
+                const thead = table.querySelector('thead');
+                
+                // Reset Header
+                thead.innerHTML = `
+                    <tr>
+                        <th contenteditable="true">標題 1</th>
+                        <th contenteditable="true">標題 2</th>
+                        <th contenteditable="true">標題 3</th>
+                    </tr>
+                `;
+                
+                // Reset Body
+                tbody.innerHTML = `
+                    <tr>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                    <tr>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                        <td contenteditable="true"></td>
+                    </tr>
+                `;
+                generateMarkdown();
+            }
+        }
+    </script>
+</body>
+</html>
