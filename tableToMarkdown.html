@@ -160,6 +160,139 @@
         </div>
     </header>
 
+    <!-- Usage Instructions (Collapsible) -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-indigo-200 overflow-hidden">
+        <button onclick="toggleInstructions()"
+            class="w-full px-4 py-3 flex items-center justify-between hover:bg-white/50 transition">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-info-circle text-indigo-600"></i>
+                <span class="font-semibold text-gray-800">使用說明</span>
+                <span class="text-xs text-gray-500 ml-2">點擊展開/收合</span>
+            </div>
+            <i id="instructionsIcon" class="fas fa-chevron-down text-indigo-600 transition-transform"></i>
+        </button>
+
+        <div id="instructionsContent" class="hidden px-4 pb-4 pt-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Basic Editing -->
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-edit text-blue-500"></i>
+                        基本編輯
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span><strong>直接點擊</strong>表格任意欄位即可編輯內容</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span>編輯時會<strong>即時更新</strong> Markdown 預覽</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span>按 <kbd class="px-2 py-1 bg-gray-100 rounded border">Tab</kbd> 可快速移動到下一格</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Excel Paste Feature -->
+                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-amber-300">
+                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-table text-emerald-500"></i>
+                        Excel 表格快速匯入
+                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">隱藏功能</span>
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-amber-500 mt-1"></i>
+                            <span>在 <strong>Excel 或 Google Sheets</strong> 中複製表格</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-amber-500 mt-1"></i>
+                            <span>在此頁面按 <kbd class="px-2 py-1 bg-gray-100 rounded border">Ctrl+V</kbd> 貼上</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-amber-500 mt-1"></i>
+                            <span>系統會自動偵測並<strong>替換整個表格</strong></span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right-click Context Menu -->
+                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-purple-300">
+                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-mouse-pointer text-purple-500"></i>
+                        右鍵選單功能
+                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">隱藏功能</span>
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-plus-circle text-indigo-500 mt-1"></i>
+                            <span><strong>插入列/欄</strong>：在上下左右插入新的列或欄</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-trash text-red-500 mt-1"></i>
+                            <span><strong>刪除列/欄</strong>：移除不需要的列或欄</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-align-center text-gray-500 mt-1"></i>
+                            <span><strong>對齊方式</strong>：設定欄位靠左/置中/靠右</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-info-circle text-blue-500 mt-1"></i>
+                            <span class="text-xs text-gray-500">提示：在任意表格欄位上<strong>按右鍵</strong>即可開啟選單</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Output & Copy -->
+                <div class="bg-white rounded-lg p-4 shadow-sm">
+                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                        <i class="fab fa-markdown text-gray-700"></i>
+                        輸出與複製
+                    </h3>
+                    <ul class="space-y-2 text-sm text-gray-700">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span>右側會<strong>即時顯示</strong> Markdown 格式</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span>點擊<strong>「複製 Markdown」</strong>按鈕一鍵複製</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <span>可直接貼到 GitHub、Notion、HackMD 等平台</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Tips -->
+            <div class="mt-4 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg p-3">
+                <h4 class="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm">
+                    <i class="fas fa-lightbulb text-yellow-500"></i>
+                    快速上手技巧
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-700">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white px-2 py-1 rounded font-mono">Esc</span>
+                        <span>關閉右鍵選單</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white px-2 py-1 rounded font-mono">Ctrl+V</span>
+                        <span>貼上 Excel 表格</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white px-2 py-1 rounded font-mono">右鍵</span>
+                        <span>開啟編輯選單</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Workspace -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
 
@@ -298,6 +431,20 @@
             generateMarkdown();
             setupEventListeners();
         });
+
+        // Toggle instructions panel
+        function toggleInstructions() {
+            const content = document.getElementById('instructionsContent');
+            const icon = document.getElementById('instructionsIcon');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
 
         function setupEventListeners() {
             // Live update on typing
