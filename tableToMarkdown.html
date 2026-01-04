@@ -148,16 +148,10 @@
                 <p class="text-xs text-gray-500">右鍵點擊表格可進行編輯</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <button onclick="resetTable()"
-                class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
-                <i class="fas fa-undo mr-1"></i> 重置
-            </button>
-            <button onclick="copyMarkdown()"
-                class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
-                <i class="fas fa-copy"></i> 複製 Markdown
-            </button>
-        </div>
+        <button onclick="resetTable()"
+            class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
+            <i class="fas fa-undo mr-1"></i> 重置
+        </button>
     </header>
 
     <!-- Usage Instructions (Collapsible) -->
@@ -341,8 +335,14 @@
                 <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                     <i class="fab fa-markdown mr-1"></i> Markdown 預覽
                 </h2>
-                <span id="copyFeedback"
-                    class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
+                <div class="flex items-center gap-3">
+                    <span id="copyFeedback"
+                        class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
+                    <button onclick="copyMarkdown()"
+                        class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
+                        <i class="fas fa-copy"></i> 複製 Markdown
+                    </button>
+                </div>
             </div>
 
             <div class="h-full bg-slate-800 rounded-lg shadow-inner overflow-hidden flex flex-col">
