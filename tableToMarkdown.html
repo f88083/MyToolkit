@@ -6,22 +6,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown 表格生成器</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f8fafc;
+            background-color: #ffffff;
         }
 
         /* 表格編輯器樣式 */
         .editor-container {
             overflow: auto;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #94B4C1;
             border-radius: 0.5rem;
             background: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(84, 119, 146, 0.2);
         }
 
         table.editor-table {
@@ -32,7 +46,7 @@
 
         table.editor-table th,
         table.editor-table td {
-            border: 1px solid #cbd5e1;
+            border: 1px solid #94B4C1;
             padding: 12px;
             min-width: 100px;
             position: relative;
@@ -42,28 +56,28 @@
 
         /* 標頭樣式 */
         table.editor-table th {
-            background-color: #f1f5f9;
+            background-color: #94B4C1;
             font-weight: 600;
-            color: #334155;
+            color: #213448;
             text-align: center;
             /* 預設置中 */
         }
 
         table.editor-table td {
-            color: #475569;
+            color: #213448;
         }
 
         /* 編輯時的聚焦樣式 */
         table.editor-table th:focus,
         table.editor-table td:focus {
-            background-color: #e0e7ff;
-            border: 2px solid #6366f1;
+            background-color: rgba(148, 180, 193, 0.3);
+            border: 2px solid #547792;
             z-index: 10;
         }
 
         /* Hover 效果 */
         table.editor-table tbody tr:hover td {
-            background-color: #f8fafc;
+            background-color: rgba(234, 224, 207, 0.3);
         }
 
         /* 右鍵選單 */
@@ -72,9 +86,9 @@
             position: absolute;
             z-index: 1000;
             background: white;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #94B4C1;
             border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 15px -3px rgba(84, 119, 146, 0.3);
             min-width: 220px;
             padding: 0.5rem 0;
             animation: fadeIn 0.1s ease-out;
@@ -98,19 +112,19 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            color: #334155;
+            color: #213448;
             font-size: 0.9rem;
             transition: background 0.1s;
         }
 
         .menu-item:hover {
-            background-color: #eff6ff;
-            color: #2563eb;
+            background-color: rgba(148, 180, 193, 0.2);
+            color: #547792;
         }
 
         .menu-divider {
             height: 1px;
-            background-color: #e2e8f0;
+            background-color: #94B4C1;
             margin: 0.4rem 0;
         }
 
@@ -138,18 +152,18 @@
 <body class="h-screen flex flex-col p-4 md:p-6 gap-6">
 
     <!-- Header -->
-    <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-custom-light">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xl">
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
                 <i class="fas fa-table"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold text-gray-800">Markdown 表格生成器</h1>
-                <p class="text-xs text-gray-500">右鍵點擊表格可進行編輯</p>
+                <h1 class="text-xl font-bold text-custom-dark">Markdown 表格生成器</h1>
+                <p class="text-xs text-custom-medium">右鍵點擊表格可進行編輯</p>
             </div>
         </div>
         <button onclick="resetTable()"
-            class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
+            class="px-4 py-2 text-sm text-custom-dark hover:bg-custom-beige rounded-lg transition border border-transparent hover:border-custom-light">
             <i class="fas fa-undo mr-1"></i> 重置
         </button>
     </header>
@@ -170,93 +184,96 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Basic Editing -->
                 <div class="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <i class="fas fa-edit text-blue-500"></i>
+                    <h3 class="font-bold text-custom-dark mb-3 flex items-center gap-2">
+                        <i class="fas fa-edit text-custom-medium"></i>
                         基本編輯
                     </h3>
-                    <ul class="space-y-2 text-sm text-gray-700">
+                    <ul class="space-y-2 text-sm text-custom-dark">
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
                             <span><strong>直接點擊</strong>表格任意欄位即可編輯內容</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
                             <span>編輯時會<strong>即時更新</strong> Markdown 預覽</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
-                            <span>按 <kbd class="px-2 py-1 bg-gray-100 rounded border">Tab</kbd> 可快速移動到下一格</span>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
+                            <span>按 <kbd class="px-2 py-1 bg-custom-beige rounded border border-custom-light">Tab</kbd>
+                                可快速移動到下一格</span>
                         </li>
                     </ul>
                 </div>
 
                 <!-- Excel Paste Feature -->
-                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-amber-300">
-                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <i class="fas fa-table text-emerald-500"></i>
+                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-custom-medium">
+                    <h3 class="font-bold text-custom-dark mb-3 flex items-center gap-2">
+                        <i class="fas fa-table text-custom-medium"></i>
                         Excel 表格快速匯入
-                        <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full">隱藏功能</span>
+                        <span class="text-xs bg-custom-light text-custom-dark px-2 py-1 rounded-full">隱藏功能</span>
                     </h3>
-                    <ul class="space-y-2 text-sm text-gray-700">
+                    <ul class="space-y-2 text-sm text-custom-dark">
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-star text-amber-500 mt-1"></i>
+                            <i class="fas fa-star text-amber-600 mt-1"></i>
                             <span>在 <strong>Excel 或 Google Sheets</strong> 中複製表格</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-star text-amber-500 mt-1"></i>
-                            <span>在此頁面按 <kbd class="px-2 py-1 bg-gray-100 rounded border">Ctrl+V</kbd> 貼上</span>
+                            <i class="fas fa-star text-amber-600 mt-1"></i>
+                            <span>在此頁面按 <kbd
+                                    class="px-2 py-1 bg-custom-beige rounded border border-custom-light">Ctrl+V</kbd>
+                                貼上</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-star text-amber-500 mt-1"></i>
+                            <i class="fas fa-star text-amber-600 mt-1"></i>
                             <span>系統會自動偵測並<strong>替換整個表格</strong></span>
                         </li>
                     </ul>
                 </div>
 
                 <!-- Right-click Context Menu -->
-                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-purple-300">
-                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <i class="fas fa-mouse-pointer text-purple-500"></i>
+                <div class="bg-white rounded-lg p-4 shadow-sm border-2 border-custom-medium">
+                    <h3 class="font-bold text-custom-dark mb-3 flex items-center gap-2">
+                        <i class="fas fa-mouse-pointer text-custom-medium"></i>
                         右鍵選單功能
-                        <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">隱藏功能</span>
+                        <span class="text-xs bg-custom-light text-custom-dark px-2 py-1 rounded-full">隱藏功能</span>
                     </h3>
-                    <ul class="space-y-2 text-sm text-gray-700">
+                    <ul class="space-y-2 text-sm text-custom-dark">
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-plus-circle text-indigo-500 mt-1"></i>
+                            <i class="fas fa-plus-circle text-custom-medium mt-1"></i>
                             <span><strong>插入列/欄</strong>：在上下左右插入新的列或欄</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-trash text-red-500 mt-1"></i>
+                            <i class="fas fa-trash text-red-600 mt-1"></i>
                             <span><strong>刪除列/欄</strong>：移除不需要的列或欄</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-align-center text-gray-500 mt-1"></i>
+                            <i class="fas fa-align-center text-custom-medium mt-1"></i>
                             <span><strong>對齊方式</strong>：設定欄位靠左/置中/靠右</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-info-circle text-blue-500 mt-1"></i>
-                            <span class="text-xs text-gray-500">提示：在任意表格欄位上<strong>按右鍵</strong>即可開啟選單</span>
+                            <i class="fas fa-info-circle text-custom-medium mt-1"></i>
+                            <span class="text-xs text-custom-medium">提示：在任意表格欄位上<strong>按右鍵</strong>即可開啟選單</span>
                         </li>
                     </ul>
                 </div>
 
                 <!-- Output & Copy -->
                 <div class="bg-white rounded-lg p-4 shadow-sm">
-                    <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <i class="fab fa-markdown text-gray-700"></i>
+                    <h3 class="font-bold text-custom-dark mb-3 flex items-center gap-2">
+                        <i class="fab fa-markdown text-custom-medium"></i>
                         輸出與複製
                     </h3>
-                    <ul class="space-y-2 text-sm text-gray-700">
+                    <ul class="space-y-2 text-sm text-custom-dark">
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
                             <span>右側會<strong>即時顯示</strong> Markdown 格式</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
                             <span>點擊<strong>「複製 Markdown」</strong>按鈕一鍵複製</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <i class="fas fa-check text-green-500 mt-1"></i>
+                            <i class="fas fa-check text-green-600 mt-1"></i>
                             <span>可直接貼到 GitHub、Notion、HackMD 等平台</span>
                         </li>
                     </ul>
@@ -264,22 +281,22 @@
             </div>
 
             <!-- Quick Tips -->
-            <div class="mt-4 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg p-3">
-                <h4 class="font-bold text-gray-800 mb-2 flex items-center gap-2 text-sm">
-                    <i class="fas fa-lightbulb text-yellow-500"></i>
+            <div class="mt-4 bg-gradient-to-r from-custom-light to-custom-beige rounded-lg p-3">
+                <h4 class="font-bold text-custom-dark mb-2 flex items-center gap-2 text-sm">
+                    <i class="fas fa-lightbulb text-yellow-600"></i>
                     快速上手技巧
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-gray-700">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs text-custom-dark">
                     <div class="flex items-center gap-2">
-                        <span class="bg-white px-2 py-1 rounded font-mono">Esc</span>
+                        <span class="bg-white px-2 py-1 rounded font-mono border border-custom-light">Esc</span>
                         <span>關閉右鍵選單</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="bg-white px-2 py-1 rounded font-mono">Ctrl+V</span>
+                        <span class="bg-white px-2 py-1 rounded font-mono border border-custom-light">Ctrl+V</span>
                         <span>貼上 Excel 表格</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="bg-white px-2 py-1 rounded font-mono">右鍵</span>
+                        <span class="bg-white px-2 py-1 rounded font-mono border border-custom-light">右鍵</span>
                         <span>開啟編輯選單</span>
                     </div>
                 </div>
@@ -293,10 +310,10 @@
         <!-- Editor Section -->
         <div class="flex flex-col gap-2 min-h-0">
             <div class="flex justify-between items-center px-1">
-                <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider">
                     <i class="fas fa-edit mr-1"></i> 表格編輯區
                 </h2>
-                <span class="text-xs text-gray-400">支援點擊編輯</span>
+                <span class="text-xs text-custom-medium opacity-70">支援點擊編輯</span>
             </div>
 
             <div class="editor-container h-full relative" id="tableContainer">
@@ -332,22 +349,22 @@
         <!-- Output Section -->
         <div class="flex flex-col gap-2 min-h-0">
             <div class="flex justify-between items-center px-1">
-                <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider">
                     <i class="fab fa-markdown mr-1"></i> Markdown 預覽
                 </h2>
                 <div class="flex items-center gap-3">
                     <span id="copyFeedback"
-                        class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
+                        class="text-xs text-green-600 font-bold opacity-0 transition-opacity">已複製！</span>
                     <button onclick="copyMarkdown()"
-                        class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
+                        class="px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center gap-2">
                         <i class="fas fa-copy"></i> 複製 Markdown
                     </button>
                 </div>
             </div>
 
-            <div class="h-full bg-slate-800 rounded-lg shadow-inner overflow-hidden flex flex-col">
+            <div class="h-full bg-custom-dark rounded-lg shadow-inner overflow-hidden flex flex-col">
                 <textarea id="mdOutput"
-                    class="w-full h-full bg-slate-800 text-gray-200 p-6 md-output resize-none focus:outline-none text-sm"
+                    class="w-full h-full bg-custom-dark text-custom-beige p-6 md-output resize-none focus:outline-none text-sm"
                     readonly></textarea>
             </div>
         </div>
