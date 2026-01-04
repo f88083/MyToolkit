@@ -6,40 +6,101 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Toolkit - 線上工具箱</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
 
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-header: #ffffff;
+            --bg-hero: #547792;
+            --text-primary: #213448;
+            --text-secondary: #547792;
+            --text-hero: #ffffff;
+            --border-color: #94B4C1;
+            --card-bg: #ffffff;
+            --card-border: #94B4C1;
+            --accent-primary: #547792;
+            --shadow-color: rgba(84, 119, 146, 0.2);
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg-primary: #2a3441;
+            --bg-secondary: #1e2936;
+            --bg-header: #1e2936;
+            --bg-hero: #3d4f5f;
+            --text-primary: #e8eef3;
+            --text-secondary: #94B4C1;
+            --text-hero: #e8eef3;
+            --border-color: #547792;
+            --card-bg: #1e2936;
+            --card-border: #547792;
+            --accent-primary: #94B4C1;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .tool-card {
             transition: all 0.3s ease;
+            background-color: var(--card-bg);
+            border-color: var(--card-border);
         }
 
         .tool-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 20px var(--shadow-color);
         }
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col">
 
     <!-- Navbar -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <nav class="sticky top-0 z-50"
+        style="background-color: var(--bg-header); border-bottom: 1px solid var(--border-color); transition: all 0.3s ease;">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
+                    <div class="w-8 h-8 bg-custom-medium rounded-lg flex items-center justify-center text-white">
                         <i class="fas fa-toolbox text-sm"></i>
                     </div>
-                    <span class="font-bold text-xl tracking-tight text-slate-800">My Toolkit</span>
+                    <span class="font-bold text-xl tracking-tight"
+                        style="color: var(--text-primary); transition: color 0.3s ease;">My Toolkit</span>
                 </div>
-                <div class="flex items-center">
-                    <a href="https://github.com/f88083" target="_blank"
-                        class="text-slate-500 hover:text-indigo-600 transition">
+                <div class="flex items-center gap-3">
+                    <button id="themeToggle" onclick="toggleTheme()"
+                        class="px-3 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                        style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                        onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                        onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                        <i id="themeIcon" class="fas fa-moon"></i>
+                    </button>
+                    <a href="https://github.com/f88083" target="_blank" class="transition"
+                        style="color: var(--text-secondary);" onmouseover="this.style.color='var(--accent-primary)'"
+                        onmouseout="this.style.color='var(--text-secondary)'">
                         <i class="fab fa-github text-xl"></i>
                     </a>
                 </div>
@@ -48,12 +109,14 @@
     </nav>
 
     <!-- Hero Section -->
-    <div class="bg-indigo-600 py-16 sm:py-24">
+    <div class="py-16 sm:py-24" style="background-color: var(--bg-hero); transition: background-color 0.3s ease;">
         <div class="max-w-4xl mx-auto px-4 text-center">
-            <h1 class="text-3xl sm:text-4xl font-extrabold text-white mb-4">
+            <h1 class="text-3xl sm:text-4xl font-extrabold mb-4"
+                style="color: var(--text-hero); transition: color 0.3s ease;">
                 簡單、好用的線上工具集
             </h1>
-            <p class="text-indigo-100 text-lg sm:text-xl max-w-2xl mx-auto">
+            <p class="text-lg sm:text-xl max-w-2xl mx-auto"
+                style="color: var(--text-hero); opacity: 0.9; transition: color 0.3s ease;">
                 這裡收集了我開發的各種網頁小工具，無需安裝，打開瀏覽器即可使用。
             </p>
         </div>
@@ -64,8 +127,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
             <!-- Tool 1: Markdown Table Generator -->
-            <a href="tableToMarkdown.html"
-                class="tool-card block bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm group">
+            <a href="tableToMarkdown.html" class="tool-card block rounded-xl overflow-hidden shadow-sm group">
                 <div class="h-2 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-4">
@@ -75,43 +137,54 @@
                         </div>
                         <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">已上線</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                    <h3 class="text-lg font-bold mb-2 group-hover:text-indigo-600 transition-colors"
+                        style="color: var(--text-primary);">
                         Markdown 表格生成器</h3>
-                    <p class="text-slate-500 text-sm leading-relaxed">
+                    <p class="text-sm leading-relaxed"
+                        style="color: var(--text-secondary); transition: color 0.3s ease;">
                         視覺化的表格編輯器，支援右鍵選單操作，可快速將 Excel 或手動輸入的內容轉為 Markdown 語法。
                     </p>
                 </div>
-                <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-medium">生產力工具</span>
+                <div class="px-6 py-3 border-t flex items-center justify-between"
+                    style="background-color: var(--bg-primary); border-color: var(--border-color); transition: all 0.3s ease;">
+                    <span class="text-xs font-medium" style="color: var(--text-secondary); opacity: 0.7;">生產力工具</span>
                     <i class="fas fa-arrow-right text-slate-300 group-hover:text-indigo-500 transition-colors"></i>
                 </div>
             </a>
 
             <!-- Tool 2: Placeholder (Coming Soon) -->
-            <div
-                class="tool-card block bg-white rounded-xl overflow-hidden border border-slate-200 border-dashed shadow-sm opacity-75">
-                <div class="h-2 bg-slate-200"></div>
+            <div class="tool-card block rounded-xl overflow-hidden border border-dashed shadow-sm opacity-75"
+                style="background-color: var(--card-bg); border-color: var(--card-border); transition: all 0.3s ease;">
+                <div class="h-2" style="background-color: var(--border-color); transition: background-color 0.3s ease;">
+                </div>
                 <div class="p-6">
                     <div class="flex items-start justify-between mb-4">
-                        <div
-                            class="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 text-xl">
+                        <div class="w-12 h-12 rounded-lg flex items-center justify-center text-xl"
+                            style="background-color: var(--bg-primary); color: var(--text-secondary); opacity: 0.5; transition: all 0.3s ease;">
                             <i class="fas fa-wrench"></i>
                         </div>
-                        <span class="bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-full font-medium">開發中</span>
+                        <span class="text-xs px-2 py-1 rounded-full font-medium"
+                            style="background-color: var(--bg-primary); color: var(--text-secondary); opacity: 0.7; transition: all 0.3s ease;">開發中</span>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-400 mb-2">JSON 格式化工具</h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">
+                    <h3 class="text-lg font-bold mb-2"
+                        style="color: var(--text-secondary); opacity: 0.6; transition: color 0.3s ease;">JSON 格式化工具</h3>
+                    <p class="text-sm leading-relaxed"
+                        style="color: var(--text-secondary); opacity: 0.5; transition: color 0.3s ease;">
                         (預計新增) 貼上亂碼般的 JSON 字串，一鍵美化並檢查語法錯誤。
                     </p>
                 </div>
-                <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-between">
-                    <span class="text-xs text-slate-300 font-medium">開發者工具</span>
+                <div class="px-6 py-3 border-t flex items-center justify-between"
+                    style="background-color: var(--bg-primary); border-color: var(--border-color); transition: all 0.3s ease;">
+                    <span class="text-xs font-medium"
+                        style="color: var(--text-secondary); opacity: 0.5; transition: color 0.3s ease;">開發者工具</span>
                 </div>
             </div>
 
             <!-- Tool 3: Placeholder (More) -->
-            <div
-                class="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-indigo-300 hover:text-indigo-500 transition-colors cursor-default">
+            <div class="flex flex-col items-center justify-center p-6 text-center border-2 border-dashed rounded-xl transition-colors cursor-default"
+                style="border-color: var(--border-color); color: var(--text-secondary); opacity: 0.6;"
+                onmouseover="this.style.borderColor='var(--accent-primary)'; this.style.color='var(--accent-primary)'; this.style.opacity='1'"
+                onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-secondary)'; this.style.opacity='0.6'">
                 <i class="fas fa-plus-circle text-3xl mb-3"></i>
                 <p class="font-medium">更多工具製作中...</p>
             </div>
@@ -120,11 +193,48 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200 py-8">
-        <div class="max-w-6xl mx-auto px-4 text-center text-slate-500 text-sm">
+    <footer class="py-8"
+        style="background-color: var(--bg-header); border-top: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm"
+            style="color: var(--text-secondary); transition: color 0.3s ease;">
             <p>&copy; 2026 My Toolkit. Hosted on GitHub Pages.</p>
         </div>
     </footer>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+
+            if (theme === 'dark') {
+                icon.className = 'fas fa-sun';
+            } else {
+                icon.className = 'fas fa-moon';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+
+        // Initialize theme on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+        });
+    </script>
 
 </body>
 
