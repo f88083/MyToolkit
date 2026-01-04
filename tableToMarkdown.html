@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-        
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
             background-color: #f8fafc;
         }
 
@@ -29,7 +30,8 @@
             min-width: 600px;
         }
 
-        table.editor-table th, table.editor-table td {
+        table.editor-table th,
+        table.editor-table td {
             border: 1px solid #cbd5e1;
             padding: 12px;
             min-width: 100px;
@@ -43,7 +45,8 @@
             background-color: #f1f5f9;
             font-weight: 600;
             color: #334155;
-            text-align: center; /* 預設置中 */
+            text-align: center;
+            /* 預設置中 */
         }
 
         table.editor-table td {
@@ -51,7 +54,8 @@
         }
 
         /* 編輯時的聚焦樣式 */
-        table.editor-table th:focus, table.editor-table td:focus {
+        table.editor-table th:focus,
+        table.editor-table td:focus {
             background-color: #e0e7ff;
             border: 2px solid #6366f1;
             z-index: 10;
@@ -77,8 +81,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         .menu-item {
@@ -123,6 +134,7 @@
         }
     </style>
 </head>
+
 <body class="h-screen flex flex-col p-4 md:p-6 gap-6">
 
     <!-- Header -->
@@ -137,10 +149,12 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <button onclick="resetTable()" class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
+            <button onclick="resetTable()"
+                class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition border border-transparent hover:border-gray-200">
                 <i class="fas fa-undo mr-1"></i> 重置
             </button>
-            <button onclick="copyMarkdown()" class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
+            <button onclick="copyMarkdown()"
+                class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow transition flex items-center gap-2">
                 <i class="fas fa-copy"></i> 複製 Markdown
             </button>
         </div>
@@ -148,7 +162,7 @@
 
     <!-- Main Workspace -->
     <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
-        
+
         <!-- Editor Section -->
         <div class="flex flex-col gap-2 min-h-0">
             <div class="flex justify-between items-center px-1">
@@ -157,7 +171,7 @@
                 </h2>
                 <span class="text-xs text-gray-400">支援點擊編輯</span>
             </div>
-            
+
             <div class="editor-container h-full relative" id="tableContainer">
                 <table class="editor-table" id="mainTable">
                     <thead>
@@ -194,11 +208,14 @@
                 <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                     <i class="fab fa-markdown mr-1"></i> Markdown 預覽
                 </h2>
-                <span id="copyFeedback" class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
+                <span id="copyFeedback"
+                    class="text-xs text-emerald-600 font-bold opacity-0 transition-opacity">已複製！</span>
             </div>
-            
+
             <div class="h-full bg-slate-800 rounded-lg shadow-inner overflow-hidden flex flex-col">
-                <textarea id="mdOutput" class="w-full h-full bg-slate-800 text-gray-200 p-6 md-output resize-none focus:outline-none text-sm" readonly></textarea>
+                <textarea id="mdOutput"
+                    class="w-full h-full bg-slate-800 text-gray-200 p-6 md-output resize-none focus:outline-none text-sm"
+                    readonly></textarea>
             </div>
         </div>
     </div>
@@ -272,7 +289,7 @@
         const table = document.getElementById('mainTable');
         const mdOutput = document.getElementById('mdOutput');
         const contextMenu = document.getElementById('contextMenu');
-        
+
         // State to track right-clicked cell
         let activeCell = null;
 
@@ -285,7 +302,10 @@
         function setupEventListeners() {
             // Live update on typing
             table.addEventListener('input', generateMarkdown);
-            
+
+            // Paste event listener for automatic table import
+            document.addEventListener('paste', handlePaste);
+
             // Context Menu Handling
             table.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -293,10 +313,10 @@
                 if (!cell) return;
 
                 activeCell = cell;
-                
+
                 // Position menu
                 const { clientX: mouseX, clientY: mouseY } = e;
-                
+
                 // Boundary check (keep menu inside viewport)
                 const menuWidth = 220;
                 const menuHeight = 350;
@@ -327,6 +347,85 @@
             });
         }
 
+        // Handle paste event to import table data from Excel
+        function handlePaste(e) {
+            // Get clipboard data
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedText = clipboardData.getData('text');
+
+            // Check if the pasted content looks like table data (contains tabs or newlines)
+            if (!pastedText || (!pastedText.includes('\t') && !pastedText.includes('\n'))) {
+                return; // Let default paste behavior happen for regular text
+            }
+
+            // Prevent default paste behavior
+            e.preventDefault();
+
+            // Parse the pasted data
+            const rows = pastedText.trim().split('\n').map(row =>
+                row.split('\t').map(cell => cell.trim())
+            );
+
+            if (rows.length === 0) return;
+
+            // Confirm with user before replacing table
+            if (!confirm(`偵測到表格資料 (${rows.length} 列 × ${rows[0].length} 欄)。\n要匯入並取代現有表格嗎？`)) {
+                return;
+            }
+
+            // Build new table
+            buildTableFromData(rows);
+            generateMarkdown();
+        }
+
+        // Build table from 2D array data
+        function buildTableFromData(data) {
+            if (data.length === 0) return;
+
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+
+            // Clear existing content
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // Create header row (first row of data)
+            const headerRow = document.createElement('tr');
+            data[0].forEach(cellText => {
+                const th = document.createElement('th');
+                th.contentEditable = 'true';
+                th.textContent = cellText || '';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Create body rows (remaining rows)
+            for (let i = 1; i < data.length; i++) {
+                const tr = document.createElement('tr');
+                const colCount = data[0].length; // Use header column count as reference
+
+                for (let j = 0; j < colCount; j++) {
+                    const td = document.createElement('td');
+                    td.contentEditable = 'true';
+                    td.textContent = data[i][j] || '';
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+
+            // If only header row was pasted, add one empty data row
+            if (data.length === 1) {
+                const tr = document.createElement('tr');
+                for (let j = 0; j < data[0].length; j++) {
+                    const td = document.createElement('td');
+                    td.contentEditable = 'true';
+                    td.textContent = '';
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
         function menuAction(action) {
             if (!activeCell) return;
             contextMenu.style.display = 'none';
@@ -336,8 +435,8 @@
             const cellIndex = activeCell.cellIndex;
             const tbody = table.querySelector('tbody');
             const thead = table.querySelector('thead');
-            
-            switch(action) {
+
+            switch (action) {
                 case 'insertRowAbove':
                     insertRow(rowIndex);
                     break;
@@ -382,32 +481,32 @@
         function insertRow(index) {
             const cols = table.rows[0].cells.length;
             const newRow = table.insertRow(index);
-            
+
             // If inserting into thead (index 0), handle carefully, but usually we insert into tbody
             // If index is 0 and it's a thead row, we usually mean insert above body row 0 or actually insert a new header?
             // For simplicity, let's treat row 0 as Header. If user inserts above row 0, they make a new header? 
             // Most MD tables only have 1 header. Let's assume standard behavior:
             // If inserting at 0, we are prepending to whatever section we are in.
-            
+
             // Correction: table.insertRow(index) inserts into the table structure globally across thead/tbody in some browsers,
             // but safer to find the parent (thead or tbody) and insert there.
             // Let's stick to: Row 0 is THEAD. Everything else is TBODY.
-            
+
             if (index === 0) {
                 // Not allowing double headers easily in simple MD, let's just insert row 1 (top of body)
                 // Or if user really wants to insert above header, maybe blocked for this simple version.
                 // Let's redirect to index 1 if they try to insert above header to keep MD valid (Head + Body).
                 // But wait, user might want to add a row *below* header (which is index 1).
-                
+
                 // Let's standardise:
                 // If target is Header (rowIndex 0), Insert Above -> Do nothing or Alert (One header only).
                 // Insert Below -> Insert at top of TBody.
                 if (activeCell.parentElement.parentElement.tagName === 'THEAD') {
-                     // Insert into TBody at index 0
-                     const tbody = table.querySelector('tbody');
-                     const r = tbody.insertRow(0);
-                     for(let i=0; i<cols; i++) r.appendChild(createCell('td'));
-                     return;
+                    // Insert into TBody at index 0
+                    const tbody = table.querySelector('tbody');
+                    const r = tbody.insertRow(0);
+                    for (let i = 0; i < cols; i++) r.appendChild(createCell('td'));
+                    return;
                 }
             }
 
@@ -452,10 +551,10 @@
             // Set data attribute on the Header cell to store alignment preference
             const headerCell = table.rows[0].cells[colIndex];
             headerCell.setAttribute('data-align', align);
-            
+
             // Visual feedback
             const rows = table.rows;
-            for(let i=0; i<rows.length; i++) {
+            for (let i = 0; i < rows.length; i++) {
                 rows[i].cells[colIndex].style.textAlign = align;
             }
         }
@@ -472,7 +571,7 @@
 
             // 1. Get Data and Calculate Widths (Optional for pretty print, here we do simple)
             // Let's do a simple format first.
-            
+
             // Process Header
             const headers = Array.from(rows[0].cells).map(c => c.textContent.trim() || " ");
             md += "| " + headers.join(" | ") + " |\n";
@@ -500,7 +599,7 @@
             mdOutput.select();
             document.execCommand('copy');
             window.getSelection().removeAllRanges();
-            
+
             const feedback = document.getElementById('copyFeedback');
             feedback.style.opacity = '1';
             setTimeout(() => {
@@ -509,10 +608,10 @@
         }
 
         function resetTable() {
-            if(confirm('確定要重置表格嗎？所有內容將會消失。')) {
+            if (confirm('確定要重置表格嗎？所有內容將會消失。')) {
                 const tbody = table.querySelector('tbody');
                 const thead = table.querySelector('thead');
-                
+
                 // Reset Header
                 thead.innerHTML = `
                     <tr>
@@ -521,7 +620,7 @@
                         <th contenteditable="true">標題 3</th>
                     </tr>
                 `;
-                
+
                 // Reset Body
                 tbody.innerHTML = `
                     <tr>
@@ -540,4 +639,5 @@
         }
     </script>
 </body>
+
 </html>
