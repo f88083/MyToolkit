@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON 格式化工具 - My Toolkit</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --bg-header: #ffffff;
+            --text-primary: #213448;
+            --text-secondary: #547792;
+            --text-tertiary: #94B4C1;
+            --border-color: #94B4C1;
+            --accent-primary: #547792;
+            --accent-secondary: #94B4C1;
+            --code-bg: #213448;
+            --code-text: #EAE0CF;
+            --shadow-color: rgba(84, 119, 146, 0.2);
+            --error-bg: #fee;
+            --error-text: #c33;
+            --success-bg: #efe;
+            --success-text: #3a3;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg-primary: #2a3441;
+            --bg-secondary: #1e2936;
+            --bg-tertiary: #3a4555;
+            --bg-header: #1e2936;
+            --text-primary: #e8eef3;
+            --text-secondary: #94B4C1;
+            --text-tertiary: #7a9aaa;
+            --border-color: #547792;
+            --accent-primary: #94B4C1;
+            --accent-secondary: #547792;
+            --code-bg: #1a2332;
+            --code-text: #d4dce4;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --error-bg: #4a2020;
+            --error-text: #ff6b6b;
+            --success-bg: #204a20;
+            --success-text: #6bff6b;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+
+        /* JSON 編輯器樣式 */
+        .json-editor {
+            font-family: 'Consolas', 'Monaco', monospace;
+            white-space: pre;
+            overflow: auto;
+            line-height: 1.6;
+            tab-size: 2;
+        }
+
+
+        /* 語法高亮 */
+        .json-key {
+            color: #0ea5e9;
+        }
+
+        .json-string {
+            color: #22c55e;
+        }
+
+        .json-number {
+            color: #f59e0b;
+        }
+
+        .json-boolean {
+            color: #a855f7;
+        }
+
+        .json-null {
+            color: #ef4444;
+        }
+
+        /* 錯誤訊息 */
+        .error-message {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border-left: 4px solid var(--error-text);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .success-message {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border-left: 4px solid var(--success-text);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* JSON Path 顯示 */
+        .json-path {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--bg-tertiary);
+            border-radius: 0.375rem;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        /* 按鈕樣式 */
+        .btn-primary {
+            background-color: var(--accent-primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--custom-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(148, 180, 193, 0.15);
+            border-color: var(--border-color);
+        }
+
+        /* 摺疊功能 */
+        .collapsible {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .collapsible:hover {
+            background-color: rgba(148, 180, 193, 0.1);
+        }
+
+        .collapsed {
+            display: none;
+        }
+
+        /* 行號 */
+        .line-numbers {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            /* 14px - 與 text-sm 相同 */
+            color: var(--text-tertiary);
+            text-align: right;
+            padding-right: 1rem;
+            border-right: 1px solid var(--border-color);
+            user-select: none;
+            line-height: 1.25rem;
+            /* 20px - 與 text-sm 的 line-height 完全一致 */
+            min-height: 100%;
+            /* 確保至少填滿容器高度 */
+        }
+
+        .json-output {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            /* 14px - 明確設置 */
+            white-space: pre;
+            line-height: 1.25rem !important;
+            /* 20px - 與 text-sm 完全一致，使用 !important 覆蓋 Tailwind */
+            min-height: 100%;
+            /* 確保至少填滿容器高度 */
+        }
+
+        /* 驗證訊息樣式 - 緊湊版本以匹配按鈕工具列高度 */
+        .success-message {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.375rem 0.75rem;
+            /* 6px 12px - 與按鈕相同 */
+            border-radius: 0.375rem;
+            /* 6px */
+            background-color: rgba(34, 197, 94, 0.1);
+            /* 淺綠色背景 */
+            color: rgb(34, 197, 94);
+            /* 綠色文字 */
+            font-size: 0.875rem;
+            /* 14px */
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .error-message {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.375rem 0.75rem;
+            /* 6px 12px - 與按鈕相同 */
+            border-radius: 0.375rem;
+            /* 6px */
+            background-color: rgba(239, 68, 68, 0.1);
+            /* 淺紅色背景 */
+            color: rgb(239, 68, 68);
+            /* 紅色文字 */
+            font-size: 0.875rem;
+            /* 14px */
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col p-4 md:p-6 gap-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-code"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary); transition: color 0.3s ease;">JSON
+                    格式化工具</h1>
+                <p class="text-xs" style="color: var(--text-secondary); transition: color 0.3s ease;">
+                    貼上 JSON 並即時驗證與美化</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="themeToggle" onclick="toggleTheme()"
+                class="px-4 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText">暗黑模式</span>
+            </button>
+            <button onclick="resetAll()" class="px-4 py-2 text-sm rounded-lg transition border"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i class="fas fa-undo mr-1"></i> 重置
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-0">
+
+        <!-- Input Section -->
+        <div class="flex flex-col gap-2 min-h-0">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider">
+                    <i class="fas fa-edit mr-1"></i> JSON 輸入區
+                </h2>
+                <div class="flex items-center gap-2">
+                    <label class="flex items-center gap-2 text-xs" style="color: var(--text-secondary);">
+                        <input type="checkbox" id="autoFormat" checked onchange="handleInput()">
+                        <span>自動格式化</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Validation Status -->
+            <div id="validationStatus"></div>
+
+            <div class="flex-1 rounded-lg shadow-sm overflow-hidden flex flex-col"
+                style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+                <textarea id="jsonInput" class="w-full h-full p-4 json-editor resize-none focus:outline-none text-sm"
+                    style="background-color: var(--bg-secondary); color: var(--text-primary); transition: all 0.3s ease;"
+                    placeholder='貼上或輸入 JSON，例如：&#10;{&#10;  "name": "My Toolkit",&#10;  "version": "1.0",&#10;  "tools": ["table", "json"]&#10;}'
+                    oninput="handleInput()"></textarea>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="flex flex-col gap-2 min-h-0">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider">
+                    <i class="fas fa-check-circle mr-1"></i> 格式化輸出
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span id="copyFeedback"
+                        class="text-xs text-green-600 font-bold opacity-0 transition-opacity">已複製！</span>
+                    <button onclick="copyJSON()" class="btn-primary">
+                        <i class="fas fa-copy"></i> 複製 JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="flex flex-wrap gap-2 px-1">
+                <button onclick="formatJSON(2)" class="btn-secondary">
+                    <i class="fas fa-indent"></i> 2 空格
+                </button>
+                <button onclick="formatJSON(4)" class="btn-secondary">
+                    <i class="fas fa-indent"></i> 4 空格
+                </button>
+                <button onclick="toggleSyntaxHighlight()" class="btn-secondary">
+                    <i class="fas fa-palette"></i> <span id="highlightText">語法高亮</span>
+                </button>
+                <button onclick="toggleLineNumbers()" class="btn-secondary">
+                    <i class="fas fa-list-ol"></i> <span id="lineNumberText">行號</span>
+                </button>
+            </div>
+
+            <div class="flex-1 rounded-lg shadow-inner overflow-auto flex" id="outputContainer"
+                style="background-color: var(--code-bg); transition: background-color 0.3s ease; align-items: flex-start;">
+                <pre id="lineNumbers" class="line-numbers p-4 hidden m-0" style="flex-shrink: 0;"></pre>
+                <pre id="jsonOutput" class="flex-1 p-4 json-output text-sm m-0"
+                    style="background-color: var(--code-bg); color: var(--code-text); transition: all 0.3s ease;"></pre>
+            </div>
+
+            <!-- JSON Path Display -->
+            <div id="jsonPathContainer" class="hidden">
+                <div class="flex items-center gap-2 text-xs" style="color: var(--text-secondary);">
+                    <i class="fas fa-route"></i>
+                    <span>JSON Path:</span>
+                </div>
+                <div id="jsonPath" class="json-path mt-1"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let syntaxHighlightEnabled = true;
+        let lineNumbersEnabled = false;
+        let currentJSON = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            loadSampleJSON();
+        });
+
+        // Load sample JSON
+        function loadSampleJSON() {
+            const sample = {
+                "name": "My Toolkit",
+                "version": "1.0.0",
+                "description": "線上工具集合",
+                "tools": [
+                    {
+                        "id": 1,
+                        "name": "Markdown 表格生成器",
+                        "status": "已上線",
+                        "features": ["視覺化編輯", "Excel 匯入", "右鍵選單"]
+                    },
+                    {
+                        "id": 2,
+                        "name": "JSON 格式化工具",
+                        "status": "已上線",
+                        "features": ["語法高亮", "即時驗證", "代碼摺疊"]
+                    }
+                ],
+                "author": {
+                    "name": "開發者",
+                    "github": "https://github.com/f88083"
+                },
+                "settings": {
+                    "theme": "light",
+                    "autoSave": true,
+                    "maxItems": 100
+                }
+            };
+
+            document.getElementById('jsonInput').value = JSON.stringify(sample, null, 2);
+            handleInput();
+        }
+
+        // Handle input changes
+        function handleInput() {
+            const input = document.getElementById('jsonInput').value.trim();
+            const autoFormat = document.getElementById('autoFormat').checked;
+
+            if (!input) {
+                clearOutput();
+                clearValidation();
+                return;
+            }
+
+            try {
+                currentJSON = JSON.parse(input);
+                showSuccess('✓ JSON 格式正確');
+
+                if (autoFormat) {
+                    formatJSON(2);
+                } else {
+                    displayJSON(input);
+                }
+
+                // Show JSON Path container
+                document.getElementById('jsonPathContainer').classList.remove('hidden');
+                updateJSONPath('$');
+
+            } catch (error) {
+                currentJSON = null;
+
+                // 顯示詳細的錯誤訊息
+                const errorMsg = error.message;
+                showError('✗ JSON 格式錯誤: ' + errorMsg);
+
+                // 在輸出區也顯示錯誤提示
+                const output = document.getElementById('jsonOutput');
+                output.innerHTML = `
+                    <div style="color: var(--error-text); padding: 2rem; text-align: center;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
+                        <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem;">無法解析 JSON</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">${errorMsg}</div>
+                        <div style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.6;">請檢查 JSON 語法是否正確</div>
+                    </div>
+                `;
+
+                document.getElementById('lineNumbers').innerHTML = '';
+                document.getElementById('jsonPathContainer').classList.add('hidden');
+            }
+        }
+
+        // Format JSON with specified indentation
+        function formatJSON(spaces) {
+            if (!currentJSON) {
+                showError('請先輸入有效的 JSON');
+                return;
+            }
+
+            const formatted = JSON.stringify(currentJSON, null, spaces);
+            displayJSON(formatted);
+            updateJSONPath('$');
+        }
+
+        // Display JSON with optional syntax highlighting
+        function displayJSON(jsonString) {
+            const output = document.getElementById('jsonOutput');
+
+            if (syntaxHighlightEnabled) {
+                output.innerHTML = syntaxHighlight(jsonString);
+            } else {
+                output.textContent = jsonString;
+            }
+
+            if (lineNumbersEnabled) {
+                updateLineNumbers(jsonString);
+            }
+        }
+
+        // Syntax highlighting
+        function syntaxHighlight(json) {
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        // Toggle syntax highlighting
+        function toggleSyntaxHighlight() {
+            syntaxHighlightEnabled = !syntaxHighlightEnabled;
+            const text = document.getElementById('highlightText');
+            text.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
+
+            if (currentJSON) {
+                const formatted = JSON.stringify(currentJSON, null, 2);
+                displayJSON(formatted);
+            }
+        }
+
+        // Toggle line numbers
+        function toggleLineNumbers() {
+            lineNumbersEnabled = !lineNumbersEnabled;
+            const lineNumbers = document.getElementById('lineNumbers');
+            const text = document.getElementById('lineNumberText');
+
+            if (lineNumbersEnabled) {
+                lineNumbers.classList.remove('hidden');
+                text.textContent = '行號 ✓';
+                // 重新顯示 JSON 內容以確保行號與內容同步
+                if (currentJSON) {
+                    const formatted = JSON.stringify(currentJSON, null, 2);
+                    displayJSON(formatted);
+                }
+            } else {
+                lineNumbers.classList.add('hidden');
+                text.textContent = '行號';
+                // 清空行號
+                lineNumbers.innerHTML = '';
+            }
+        }
+
+        // Update line numbers
+        function updateLineNumbers(text) {
+            const lines = text.split('\n');
+            const lineNumbers = document.getElementById('lineNumbers');
+            // 使用 textContent 和換行符，因為 lineNumbers 現在是 pre 標籤
+            lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+        }
+
+        // Update JSON Path display
+        function updateJSONPath(path) {
+            const pathElement = document.getElementById('jsonPath');
+            pathElement.textContent = path;
+        }
+
+        // Copy JSON to clipboard
+        function copyJSON() {
+            const output = document.getElementById('jsonOutput');
+            const text = output.textContent;
+
+            if (!text) {
+                showError('沒有可複製的內容');
+                return;
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                const feedback = document.getElementById('copyFeedback');
+                feedback.style.opacity = '1';
+                setTimeout(() => {
+                    feedback.style.opacity = '0';
+                }, 2000);
+            }).catch(err => {
+                showError('複製失敗: ' + err.message);
+            });
+        }
+
+        // Show error message
+        function showError(message) {
+            const status = document.getElementById('validationStatus');
+            status.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const status = document.getElementById('validationStatus');
+            status.innerHTML = `
+                <div class="success-message">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+
+        // Clear output
+        function clearOutput() {
+            document.getElementById('jsonOutput').textContent = '';
+            document.getElementById('lineNumbers').innerHTML = '';
+        }
+
+        // Clear validation status
+        function clearValidation() {
+            document.getElementById('validationStatus').innerHTML = '';
+        }
+
+        // Reset all
+        function resetAll() {
+            if (confirm('確定要重置所有內容嗎？')) {
+                document.getElementById('jsonInput').value = '';
+                clearOutput();
+                clearValidation();
+                currentJSON = null;
+                document.getElementById('jsonPathContainer').classList.add('hidden');
+            }
+        }
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (theme === 'dark') {
+                icon.className = 'fas fa-sun';
+                text.textContent = '明亮模式';
+            } else {
+                icon.className = 'fas fa-moon';
+                text.textContent = '暗黑模式';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+    </script>
+
+</body>
+
+</html>
