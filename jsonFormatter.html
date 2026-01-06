@@ -278,6 +278,15 @@
     <header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
         style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
         <div class="flex items-center gap-3">
+            <!-- Back to Home Link -->
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
             <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
                 <i class="fas fa-code"></i>
             </div>

@@ -450,6 +450,56 @@ table.editor-table tbody tr:hover td {
 }
 ```
 
+### 8. 返回首頁連結 (工具頁面)
+
+所有工具頁面（如 `jsonFormatter.html`、`tableToMarkdown.html`）都應在 header 左側包含返回首頁的連結，方便用戶導航。
+
+#### HTML 結構
+
+```html
+<header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+    <div class="flex items-center gap-3">
+        <!-- Back to Home Link -->
+        <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+            style="color: var(--text-secondary);"
+            onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+            onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+            title="返回首頁">
+            <i class="fas fa-arrow-left text-xs"></i>
+            <span class="hidden sm:inline">首頁</span>
+        </a>
+        
+        <!-- 工具圖示 -->
+        <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+            <i class="fas fa-code"></i>
+        </div>
+        
+        <!-- 工具標題 -->
+        <div>
+            <h1 class="text-xl font-bold" style="color: var(--text-primary);">工具名稱</h1>
+            <p class="text-xs" style="color: var(--text-secondary);">工具描述</p>
+        </div>
+    </div>
+    <!-- 右側按鈕 -->
+</header>
+```
+
+**設計要點：**
+- **位置**：放置在 header 左側，工具圖示之前
+- **圖示**：使用左箭頭 `fa-arrow-left`
+- **文字**：顯示「首頁」，在小螢幕時隱藏（`hidden sm:inline`）
+- **顏色**：預設使用 `--text-secondary`，hover 時變為 `--accent-primary`
+- **背景**：預設透明，hover 時顯示淡色背景 `rgba(148, 180, 193, 0.15)`
+- **間距**：與其他元素保持 `gap-3` 的間距
+- **圓角**：使用 `rounded-lg` 保持一致性
+- **過渡效果**：使用 `transition-all` 實現平滑過渡
+- **提示文字**：使用 `title` 屬性提供「返回首頁」的提示
+
+**響應式行為：**
+- **桌面版**：顯示箭頭圖示 + 「首頁」文字
+- **手機版**：只顯示箭頭圖示，節省空間
+
 ---
 
 ## 🌓 主題切換
@@ -760,6 +810,15 @@ table.editor-table td {
     <header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
             style="background-color: var(--bg-header); border: 1px solid var(--border-color);">
         <div class="flex items-center gap-3">
+            <!-- Back to Home Link -->
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
             <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
                 <i class="fas fa-wrench"></i>
             </div>
