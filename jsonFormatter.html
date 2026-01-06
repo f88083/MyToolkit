@@ -397,11 +397,13 @@
         let syntaxHighlightEnabled = true;
         let lineNumbersEnabled = false;
         let currentJSON = null;
+        let currentIndent = 2; // 預設 2 空格縮排
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             initTheme();
             loadSampleJSON();
+            updateButtonStates(); // 初始化按鈕狀態
         });
 
         // Load sample JSON
@@ -455,7 +457,7 @@
                 showSuccess('✓ JSON 格式正確');
 
                 if (autoFormat) {
-                    formatJSON(2);
+                    formatJSON(currentIndent);
                 } else {
                     displayJSON(input);
                 }
@@ -494,9 +496,11 @@
                 return;
             }
 
+            currentIndent = spaces; // 更新當前縮排大小
             const formatted = JSON.stringify(currentJSON, null, spaces);
             displayJSON(formatted);
             updateJSONPath('$');
+            updateButtonStates(); // 更新按鈕狀態
         }
 
         // Display JSON with optional syntax highlighting
@@ -541,7 +545,7 @@
             text.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
 
             if (currentJSON) {
-                const formatted = JSON.stringify(currentJSON, null, 2);
+                const formatted = JSON.stringify(currentJSON, null, currentIndent);
                 displayJSON(formatted);
             }
         }
@@ -557,7 +561,7 @@
                 text.textContent = '行號 ✓';
                 // 重新顯示 JSON 內容以確保行號與內容同步
                 if (currentJSON) {
-                    const formatted = JSON.stringify(currentJSON, null, 2);
+                    const formatted = JSON.stringify(currentJSON, null, currentIndent);
                     displayJSON(formatted);
                 }
             } else {
@@ -566,6 +570,27 @@
                 // 清空行號
                 lineNumbers.innerHTML = '';
             }
+        }
+
+        // Update button states to show current selections
+        function updateButtonStates() {
+            // 更新語法高亮按鈕
+            const highlightText = document.getElementById('highlightText');
+            highlightText.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
+
+            // 更新縮排按鈕 - 找到所有格式化按鈕並更新它們的文字
+            const buttons = document.querySelectorAll('button[onclick^="formatJSON"]');
+            buttons.forEach(btn => {
+                const spaces = btn.getAttribute('onclick').match(/\d+/)[0];
+                const isActive = parseInt(spaces) === currentIndent;
+
+                // 更新按鈕文字內容
+                if (isActive) {
+                    btn.innerHTML = `<i class="fas fa-indent"></i> ${spaces} 空格 ✓`;
+                } else {
+                    btn.innerHTML = `<i class="fas fa-indent"></i> ${spaces} 空格`;
+                }
+            });
         }
 
         // Update line numbers
