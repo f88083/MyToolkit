@@ -524,14 +524,14 @@ function toggleTheme() {
 // 更新按鈕圖示
 function updateThemeButton(theme) {
     const icon = document.getElementById('themeIcon');
-    const text = document.getElementById('themeText'); // tableToMarkdown.html 專用
+    const text = document.getElementById('themeText'); // tableToMarkdown.html 和 jsonFormatter.html 專用
     
     if (theme === 'dark') {
-        icon.className = 'fas fa-sun';
-        if (text) text.textContent = '明亮模式';
-    } else {
         icon.className = 'fas fa-moon';
         if (text) text.textContent = '暗黑模式';
+    } else {
+        icon.className = 'fas fa-sun';
+        if (text) text.textContent = '明亮模式';
     }
 }
 
@@ -552,7 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
 - 使用 `data-theme` 屬性控制主題
 - 主題偏好儲存在 `localStorage`
 - 預設為淺色模式
-- index.html 只顯示圖示，tableToMarkdown.html 顯示圖示+文字
+- **按鈕顯示當前模式**：暗黑模式顯示月亮圖標和「暗黑模式」，明亮模式顯示太陽圖標和「明亮模式」
+- index.html 只顯示圖示，tableToMarkdown.html 和 jsonFormatter.html 顯示圖示+文字
 
 ---
 
