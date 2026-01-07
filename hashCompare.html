@@ -229,189 +229,194 @@
     </header>
 
     <!-- Main Workspace -->
-    <div class="flex-1 flex flex-col gap-6 min-h-0 overflow-auto">
+    <div class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 flex flex-col gap-6 min-h-0 overflow-auto">
 
-        <!-- Upload Section -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- File 1 Drop Zone -->
-            <div class="flex flex-col gap-3">
-                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
-                    <i class="fas fa-file mr-1"></i> 檔案 1
+            <!-- Upload Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- File 1 Drop Zone -->
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                        <i class="fas fa-file mr-1"></i> 檔案 1
+                    </h2>
+                    <input type="file" id="fileInput1" class="hidden" onchange="handleFileSelect(event, 1)">
+                    <div id="dropZone1" class="drop-zone" onclick="document.getElementById('fileInput1').click()"
+                        ondragover="handleDragOver(event, 'dropZone1')"
+                        ondragleave="handleDragLeave(event, 'dropZone1')" ondrop="handleDrop(event, 1)">
+                        <div id="dropZoneContent1">
+                            <i class="fas fa-cloud-upload-alt text-4xl mb-3"
+                                style="color: var(--accent-secondary);"></i>
+                            <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
+                            <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+                        </div>
+                    </div>
+
+                    <!-- File 1 Info -->
+                    <div id="fileInfo1" class="file-info hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold" style="color: var(--text-primary);">
+                                <i class="fas fa-file mr-2"></i>
+                                <span id="fileName1"></span>
+                            </span>
+                            <button onclick="removeFile(1)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
+                                style="color: var(--mismatch-text);">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs" style="color: var(--text-secondary);">
+                            大小: <span id="fileSize1"></span>
+                        </p>
+                    </div>
+
+                    <!-- File 1 Hash Results -->
+                    <div id="hashResults1" class="hidden flex flex-col gap-2">
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">MD5:</span>
+                            <span id="md5_1" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('md5_1')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA1:</span>
+                            <span id="sha1_1" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha1_1')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA256:</span>
+                            <span id="sha256_1" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha256_1')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA512:</span>
+                            <span id="sha512_1" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha512_1')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File 2 Drop Zone -->
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                        <i class="fas fa-file mr-1"></i> 檔案 2
+                    </h2>
+                    <input type="file" id="fileInput2" class="hidden" onchange="handleFileSelect(event, 2)">
+                    <div id="dropZone2" class="drop-zone" onclick="document.getElementById('fileInput2').click()"
+                        ondragover="handleDragOver(event, 'dropZone2')"
+                        ondragleave="handleDragLeave(event, 'dropZone2')" ondrop="handleDrop(event, 2)">
+                        <div id="dropZoneContent2">
+                            <i class="fas fa-cloud-upload-alt text-4xl mb-3"
+                                style="color: var(--accent-secondary);"></i>
+                            <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
+                            <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+                        </div>
+                    </div>
+
+                    <!-- File 2 Info -->
+                    <div id="fileInfo2" class="file-info hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold" style="color: var(--text-primary);">
+                                <i class="fas fa-file mr-2"></i>
+                                <span id="fileName2"></span>
+                            </span>
+                            <button onclick="removeFile(2)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
+                                style="color: var(--mismatch-text);">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs" style="color: var(--text-secondary);">
+                            大小: <span id="fileSize2"></span>
+                        </p>
+                    </div>
+
+                    <!-- File 2 Hash Results -->
+                    <div id="hashResults2" class="hidden flex flex-col gap-2">
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">MD5:</span>
+                            <span id="md5_2" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('md5_2')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA1:</span>
+                            <span id="sha1_2" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha1_2')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA256:</span>
+                            <span id="sha256_2" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha256_2')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="hash-label">SHA512:</span>
+                            <span id="sha512_2" class="hash-value flex-1">-</span>
+                            <button onclick="copyHash('sha512_2')" class="btn-secondary px-2 py-1" title="複製">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Upload Section -->
+            <div class="rounded-xl border p-4"
+                style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-upload" style="color: var(--accent-primary);"></i>
+                        <span class="font-semibold" style="color: var(--text-primary);">批次上傳</span>
+                        <span class="text-xs" style="color: var(--text-secondary);">一次選擇兩個檔案進行比較</span>
+                    </div>
+                    <div>
+                        <input type="file" id="batchFileInput" class="hidden" multiple
+                            onchange="handleBatchSelect(event)">
+                        <button onclick="document.getElementById('batchFileInput').click()"
+                            class="px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fas fa-folder-open"></i> 選擇兩個檔案
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comparison Result -->
+            <div id="comparisonSection" class="hidden">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1 mb-3">
+                    <i class="fas fa-balance-scale mr-1"></i> 比較結果
                 </h2>
-                <input type="file" id="fileInput1" class="hidden" onchange="handleFileSelect(event, 1)">
-                <div id="dropZone1" class="drop-zone" onclick="document.getElementById('fileInput1').click()"
-                    ondragover="handleDragOver(event, 'dropZone1')" ondragleave="handleDragLeave(event, 'dropZone1')"
-                    ondrop="handleDrop(event, 1)">
-                    <div id="dropZoneContent1">
-                        <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
-                        <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
-                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div id="compare_md5" class="comparison-result">
+                        <div class="text-xs mb-1" style="color: var(--text-secondary);">MD5</div>
+                        <div id="compare_md5_result">-</div>
                     </div>
-                </div>
-
-                <!-- File 1 Info -->
-                <div id="fileInfo1" class="file-info hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold" style="color: var(--text-primary);">
-                            <i class="fas fa-file mr-2"></i>
-                            <span id="fileName1"></span>
-                        </span>
-                        <button onclick="removeFile(1)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
-                            style="color: var(--mismatch-text);">
-                            <i class="fas fa-times"></i>
-                        </button>
+                    <div id="compare_sha1" class="comparison-result">
+                        <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA1</div>
+                        <div id="compare_sha1_result">-</div>
                     </div>
-                    <p class="text-xs" style="color: var(--text-secondary);">
-                        大小: <span id="fileSize1"></span>
-                    </p>
-                </div>
-
-                <!-- File 1 Hash Results -->
-                <div id="hashResults1" class="hidden flex flex-col gap-2">
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">MD5:</span>
-                        <span id="md5_1" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('md5_1')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
+                    <div id="compare_sha256" class="comparison-result">
+                        <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA256</div>
+                        <div id="compare_sha256_result">-</div>
                     </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA1:</span>
-                        <span id="sha1_1" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha1_1')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA256:</span>
-                        <span id="sha256_1" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha256_1')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA512:</span>
-                        <span id="sha512_1" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha512_1')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- File 2 Drop Zone -->
-            <div class="flex flex-col gap-3">
-                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
-                    <i class="fas fa-file mr-1"></i> 檔案 2
-                </h2>
-                <input type="file" id="fileInput2" class="hidden" onchange="handleFileSelect(event, 2)">
-                <div id="dropZone2" class="drop-zone" onclick="document.getElementById('fileInput2').click()"
-                    ondragover="handleDragOver(event, 'dropZone2')" ondragleave="handleDragLeave(event, 'dropZone2')"
-                    ondrop="handleDrop(event, 2)">
-                    <div id="dropZoneContent2">
-                        <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
-                        <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
-                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
-                    </div>
-                </div>
-
-                <!-- File 2 Info -->
-                <div id="fileInfo2" class="file-info hidden">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="font-semibold" style="color: var(--text-primary);">
-                            <i class="fas fa-file mr-2"></i>
-                            <span id="fileName2"></span>
-                        </span>
-                        <button onclick="removeFile(2)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
-                            style="color: var(--mismatch-text);">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <p class="text-xs" style="color: var(--text-secondary);">
-                        大小: <span id="fileSize2"></span>
-                    </p>
-                </div>
-
-                <!-- File 2 Hash Results -->
-                <div id="hashResults2" class="hidden flex flex-col gap-2">
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">MD5:</span>
-                        <span id="md5_2" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('md5_2')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA1:</span>
-                        <span id="sha1_2" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha1_2')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA256:</span>
-                        <span id="sha256_2" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha256_2')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-start gap-2">
-                        <span class="hash-label">SHA512:</span>
-                        <span id="sha512_2" class="hash-value flex-1">-</span>
-                        <button onclick="copyHash('sha512_2')" class="btn-secondary px-2 py-1" title="複製">
-                            <i class="fas fa-copy"></i>
-                        </button>
+                    <div id="compare_sha512" class="comparison-result">
+                        <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA512</div>
+                        <div id="compare_sha512_result">-</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Batch Upload Section -->
-        <div class="rounded-xl border p-4"
-            style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
-            <div class="flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-upload" style="color: var(--accent-primary);"></i>
-                    <span class="font-semibold" style="color: var(--text-primary);">批次上傳</span>
-                    <span class="text-xs" style="color: var(--text-secondary);">一次選擇兩個檔案進行比較</span>
-                </div>
-                <div>
-                    <input type="file" id="batchFileInput" class="hidden" multiple onchange="handleBatchSelect(event)">
-                    <button onclick="document.getElementById('batchFileInput').click()"
-                        class="px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center gap-2">
-                        <i class="fas fa-folder-open"></i> 選擇兩個檔案
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Comparison Result -->
-        <div id="comparisonSection" class="hidden">
-            <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1 mb-3">
-                <i class="fas fa-balance-scale mr-1"></i> 比較結果
-            </h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div id="compare_md5" class="comparison-result">
-                    <div class="text-xs mb-1" style="color: var(--text-secondary);">MD5</div>
-                    <div id="compare_md5_result">-</div>
-                </div>
-                <div id="compare_sha1" class="comparison-result">
-                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA1</div>
-                    <div id="compare_sha1_result">-</div>
-                </div>
-                <div id="compare_sha256" class="comparison-result">
-                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA256</div>
-                    <div id="compare_sha256_result">-</div>
-                </div>
-                <div id="compare_sha512" class="comparison-result">
-                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA512</div>
-                    <div id="compare_sha512_result">-</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Usage Instructions (Collapsible) - Bottom of page -->
-        <div class="rounded-xl border overflow-hidden mt-auto"
+        <!-- Usage Instructions (Collapsible) - Fixed at bottom -->
+        <div class="rounded-xl border overflow-hidden mt-4 flex-shrink-0"
             style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
             <button onclick="toggleInstructions()" class="w-full px-4 py-2 flex items-center justify-between transition"
                 style="background: transparent;" onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.1)'"
