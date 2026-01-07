@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diff 比較器 - My Toolkit</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --bg-header: #ffffff;
+            --text-primary: #213448;
+            --text-secondary: #547792;
+            --text-tertiary: #94B4C1;
+            --border-color: #94B4C1;
+            --accent-primary: #547792;
+            --accent-secondary: #94B4C1;
+            --shadow-color: rgba(84, 119, 146, 0.2);
+            /* Diff colors - Light */
+            --diff-add-bg: rgba(34, 197, 94, 0.15);
+            --diff-add-text: #166534;
+            --diff-add-border: rgba(34, 197, 94, 0.3);
+            --diff-del-bg: rgba(239, 68, 68, 0.15);
+            --diff-del-text: #991b1b;
+            --diff-del-border: rgba(239, 68, 68, 0.3);
+            --diff-context-bg: transparent;
+            --diff-line-num-bg: #f1f5f9;
+            --diff-line-num-text: #64748b;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg-primary: #2a3441;
+            --bg-secondary: #1e2936;
+            --bg-tertiary: #3a4555;
+            --bg-header: #1e2936;
+            --text-primary: #e8eef3;
+            --text-secondary: #94B4C1;
+            --text-tertiary: #7a9aaa;
+            --border-color: #547792;
+            --accent-primary: #94B4C1;
+            --accent-secondary: #547792;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            /* Diff colors - Dark */
+            --diff-add-bg: rgba(34, 197, 94, 0.2);
+            --diff-add-text: #86efac;
+            --diff-add-border: rgba(34, 197, 94, 0.4);
+            --diff-del-bg: rgba(239, 68, 68, 0.2);
+            --diff-del-text: #fca5a5;
+            --diff-del-border: rgba(239, 68, 68, 0.4);
+            --diff-context-bg: transparent;
+            --diff-line-num-bg: #3a4555;
+            --diff-line-num-text: #94B4C1;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 拖放區域樣式 */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            background-color: var(--bg-secondary);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+            transform: scale(1.01);
+        }
+
+        .drop-zone.has-file {
+            border-style: solid;
+            border-color: var(--accent-primary);
+        }
+
+        /* 文字區域樣式 */
+        .text-input {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            resize: none;
+            transition: all 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--shadow-color);
+        }
+
+        /* Diff 結果樣式 */
+        .diff-container {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .diff-line {
+            display: flex;
+            white-space: pre;
+            transition: background-color 0.2s ease;
+        }
+
+        .diff-line-num {
+            min-width: 3.5rem;
+            padding: 0 0.5rem;
+            text-align: right;
+            background-color: var(--diff-line-num-bg);
+            color: var(--diff-line-num-text);
+            user-select: none;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .diff-line-type {
+            width: 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            font-weight: bold;
+        }
+
+        .diff-line-content {
+            flex: 1;
+            padding: 0 0.5rem;
+            overflow-x: auto;
+        }
+
+        .diff-add {
+            background-color: var(--diff-add-bg);
+        }
+
+        .diff-add .diff-line-type {
+            color: var(--diff-add-text);
+        }
+
+        .diff-add .diff-line-content {
+            color: var(--diff-add-text);
+        }
+
+        .diff-del {
+            background-color: var(--diff-del-bg);
+        }
+
+        .diff-del .diff-line-type {
+            color: var(--diff-del-text);
+        }
+
+        .diff-del .diff-line-content {
+            color: var(--diff-del-text);
+        }
+
+        .diff-context .diff-line-content {
+            color: var(--text-primary);
+        }
+
+        /* 統計資訊樣式 */
+        .stats-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .stats-add {
+            background-color: var(--diff-add-bg);
+            color: var(--diff-add-text);
+        }
+
+        .stats-del {
+            background-color: var(--diff-del-bg);
+            color: var(--diff-del-text);
+        }
+
+        /* 按鈕樣式 */
+        .btn-primary {
+            background-color: #547792;
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: #213448;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(148, 180, 193, 0.15);
+            border-color: var(--border-color);
+        }
+
+        /* 檔案資訊 */
+        .file-info {
+            background-color: var(--bg-tertiary);
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        /* 空狀態 */
+        .empty-state {
+            color: var(--text-tertiary);
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col p-4 md:p-6 gap-4">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm flex-shrink-0"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="flex items-center gap-3">
+            <!-- Back to Home Link -->
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-code-compare"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary); transition: color 0.3s ease;">Diff
+                    比較器</h1>
+                <p class="text-xs" style="color: var(--text-secondary); transition: color 0.3s ease;">
+                    比較兩個文字或檔案的差異</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="themeToggle" onclick="toggleTheme()"
+                class="px-4 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText">暗黑模式</span>
+            </button>
+            <button onclick="resetAll()" class="px-4 py-2 text-sm rounded-lg transition border"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i class="fas fa-undo mr-1"></i> 重置
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col gap-4 min-h-0">
+        <!-- Input Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-shrink-0" style="min-height: 200px; max-height: 40vh;">
+            <!-- Original Text -->
+            <div class="flex flex-col gap-2 min-h-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--accent-primary);">
+                        <i class="fas fa-file-alt mr-1"></i> 原始文字
+                    </h2>
+                    <div id="fileInfo1" class="file-info hidden">
+                        <i class="fas fa-file mr-1"></i>
+                        <span id="fileName1"></span>
+                        <span class="mx-1">•</span>
+                        <span id="fileSize1"></span>
+                        <button onclick="clearFile(1)" class="ml-2 hover:text-red-500 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="drop-zone flex-1 flex flex-col min-h-0" id="dropZone1" ondragover="handleDragOver(event, 1)"
+                    ondragleave="handleDragLeave(event, 1)" ondrop="handleDrop(event, 1)">
+                    <input type="file" id="fileInput1" class="hidden" onchange="handleFileSelect(event, 1)">
+                    <textarea id="text1" class="text-input w-full flex-1 p-3 rounded"
+                        placeholder="貼上原始文字，或拖放檔案至此處...&#10;&#10;支援的格式：.py, .cs, .js, .java, .html, .css, .json, .txt 等文字檔案"
+                        oninput="onTextChange()"></textarea>
+                    <div class="flex justify-center py-2">
+                        <button onclick="document.getElementById('fileInput1').click()"
+                            class="btn-secondary text-xs flex items-center gap-1">
+                            <i class="fas fa-folder-open"></i> 選擇檔案
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modified Text -->
+            <div class="flex flex-col gap-2 min-h-0">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--accent-primary);">
+                        <i class="fas fa-file-alt mr-1"></i> 修改後文字
+                    </h2>
+                    <div id="fileInfo2" class="file-info hidden">
+                        <i class="fas fa-file mr-1"></i>
+                        <span id="fileName2"></span>
+                        <span class="mx-1">•</span>
+                        <span id="fileSize2"></span>
+                        <button onclick="clearFile(2)" class="ml-2 hover:text-red-500 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="drop-zone flex-1 flex flex-col min-h-0" id="dropZone2" ondragover="handleDragOver(event, 2)"
+                    ondragleave="handleDragLeave(event, 2)" ondrop="handleDrop(event, 2)">
+                    <input type="file" id="fileInput2" class="hidden" onchange="handleFileSelect(event, 2)">
+                    <textarea id="text2" class="text-input w-full flex-1 p-3 rounded"
+                        placeholder="貼上修改後的文字，或拖放檔案至此處...&#10;&#10;支援的格式：.py, .cs, .js, .java, .html, .css, .json, .txt 等文字檔案"
+                        oninput="onTextChange()"></textarea>
+                    <div class="flex justify-center py-2">
+                        <button onclick="document.getElementById('fileInput2').click()"
+                            class="btn-secondary text-xs flex items-center gap-1">
+                            <i class="fas fa-folder-open"></i> 選擇檔案
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compare Button & Stats -->
+        <div class="flex items-center justify-center gap-4 flex-shrink-0">
+            <button onclick="compareDiff()" class="btn-primary flex items-center gap-2">
+                <i class="fas fa-code-compare"></i> 比較差異
+            </button>
+            <div id="stats" class="hidden flex items-center gap-3">
+                <span class="stats-badge stats-add">
+                    <i class="fas fa-plus"></i>
+                    <span id="addCount">0</span> 行新增
+                </span>
+                <span class="stats-badge stats-del">
+                    <i class="fas fa-minus"></i>
+                    <span id="delCount">0</span> 行刪除
+                </span>
+            </div>
+        </div>
+
+        <!-- Diff Result -->
+        <div class="flex-1 min-h-0 flex flex-col">
+            <div id="diffResult" class="diff-container flex-1 overflow-auto">
+                <div class="empty-state flex flex-col items-center justify-center h-full py-12">
+                    <i class="fas fa-code-compare text-4xl mb-3"></i>
+                    <p>輸入文字並點擊「比較差異」查看結果</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Usage Instructions -->
+        <div class="rounded-xl border overflow-hidden flex-shrink-0"
+            style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
+            <button onclick="toggleInstructions()" class="w-full px-4 py-2 flex items-center justify-between transition"
+                style="background: transparent;" onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.1)'"
+                onmouseout="this.style.backgroundColor='transparent'">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-question-circle text-sm" style="color: var(--text-tertiary);"></i>
+                    <span class="text-xs" style="color: var(--text-tertiary);">使用說明</span>
+                </div>
+                <i id="instructionsIcon" class="fas fa-chevron-down text-xs transition-transform"
+                    style="color: var(--text-tertiary);"></i>
+            </button>
+
+            <div id="instructionsContent" class="hidden px-4 pb-4 pt-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Upload Methods -->
+                    <div class="rounded-lg p-3 shadow-sm"
+                        style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                        <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                            <i class="fas fa-upload text-custom-medium"></i>
+                            輸入方式
+                        </h3>
+                        <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-green-600 mt-0.5"></i>
+                                <span>直接<strong>貼上文字</strong>到左右輸入區</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-green-600 mt-0.5"></i>
+                                <span><strong>拖放檔案</strong>至輸入區域</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-check text-green-600 mt-0.5"></i>
+                                <span>點擊<strong>「選擇檔案」</strong>按鈕</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Supported Files -->
+                    <div class="rounded-lg p-3 shadow-sm"
+                        style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                        <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                            <i class="fas fa-file-code text-custom-medium"></i>
+                            支援檔案格式
+                        </h3>
+                        <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-code text-custom-light mt-0.5"></i>
+                                <span><strong>程式碼</strong>：.py, .cs, .js, .java, .cpp...</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-globe text-custom-light mt-0.5"></i>
+                                <span><strong>網頁</strong>：.html, .css, .json, .xml...</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fas fa-file-alt text-custom-light mt-0.5"></i>
+                                <span><strong>文字</strong>：.txt, .md, .log, .csv...</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Reading Diff -->
+                    <div class="rounded-lg p-3 shadow-sm"
+                        style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                        <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                            <i class="fas fa-eye text-custom-medium"></i>
+                            閱讀差異
+                        </h3>
+                        <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                            <li class="flex items-start gap-2">
+                                <span class="text-green-600 font-bold">+</span>
+                                <span><strong>綠色</strong>表示新增的行</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-red-600 font-bold">−</span>
+                                <span><strong>紅色</strong>表示刪除的行</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-gray-400 font-bold">&nbsp;</span>
+                                <span><strong>無標記</strong>表示未變更的行</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Privacy Note -->
+                <div class="mt-3 rounded-lg p-2 text-center" style="background-color: var(--bg-tertiary);">
+                    <p class="text-xs flex items-center justify-center gap-2" style="color: var(--text-secondary);">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>所有檔案均在<strong>本機瀏覽器</strong>中處理，不會上傳至任何伺服器</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supported file extensions
+        const supportedExtensions = [
+            // Programming languages
+            '.py', '.cs', '.js', '.ts', '.jsx', '.tsx', '.java', '.c', '.cpp', '.h', '.hpp',
+            '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.kts', '.scala', '.r', '.m', '.mm',
+            // Web / Markup
+            '.html', '.htm', '.css', '.scss', '.sass', '.less', '.xml', '.json', '.yaml', '.yml', '.md', '.markdown',
+            // Scripts / Config
+            '.sh', '.bash', '.zsh', '.bat', '.cmd', '.ps1', '.ini', '.conf', '.cfg', '.env', '.toml',
+            // Other text
+            '.txt', '.log', '.sql', '.csv', '.tsv', '.gitignore', '.dockerfile', '.makefile'
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+        });
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+                text.textContent = '暗黑模式';
+            } else {
+                icon.className = 'fas fa-sun';
+                text.textContent = '明亮模式';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+
+        // Toggle instructions panel
+        function toggleInstructions() {
+            const content = document.getElementById('instructionsContent');
+            const icon = document.getElementById('instructionsIcon');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        // File handling
+        function handleDragOver(event, index) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone' + index).classList.add('dragover');
+        }
+
+        function handleDragLeave(event, index) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone' + index).classList.remove('dragover');
+        }
+
+        function handleDrop(event, index) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone' + index).classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                loadFile(files[0], index);
+            }
+        }
+
+        function handleFileSelect(event, index) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                loadFile(files[0], index);
+            }
+        }
+
+        function loadFile(file, index) {
+            // Check if file is text-based
+            const fileName = file.name.toLowerCase();
+            const extension = '.' + fileName.split('.').pop();
+
+            // Accept any file that isn't obviously binary
+            const binaryExtensions = ['.exe', '.dll', '.bin', '.zip', '.rar', '.7z', '.gz', '.tar',
+                '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.webp',
+                '.mp3', '.mp4', '.avi', '.mov', '.wav', '.flac',
+                '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+
+            if (binaryExtensions.includes(extension)) {
+                alert('不支援二進位檔案。請上傳文字格式的檔案。');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const content = e.target.result;
+
+                // Check if content appears to be binary
+                if (content.includes('\0')) {
+                    alert('此檔案似乎是二進位格式，無法比較。');
+                    return;
+                }
+
+                document.getElementById('text' + index).value = content;
+                document.getElementById('dropZone' + index).classList.add('has-file');
+
+                // Show file info
+                const fileInfo = document.getElementById('fileInfo' + index);
+                document.getElementById('fileName' + index).textContent = file.name;
+                document.getElementById('fileSize' + index).textContent = formatFileSize(file.size);
+                fileInfo.classList.remove('hidden');
+            };
+
+            reader.onerror = function () {
+                alert('讀取檔案時發生錯誤。');
+            };
+
+            reader.readAsText(file);
+        }
+
+        function clearFile(index) {
+            document.getElementById('text' + index).value = '';
+            document.getElementById('fileInput' + index).value = '';
+            document.getElementById('fileInfo' + index).classList.add('hidden');
+            document.getElementById('dropZone' + index).classList.remove('has-file');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function onTextChange() {
+            // Could add real-time comparison here in the future
+        }
+
+        // Reset all
+        function resetAll() {
+            document.getElementById('text1').value = '';
+            document.getElementById('text2').value = '';
+            clearFile(1);
+            clearFile(2);
+            document.getElementById('diffResult').innerHTML = `
+                <div class="empty-state flex flex-col items-center justify-center h-full py-12">
+                    <i class="fas fa-code-compare text-4xl mb-3"></i>
+                    <p>輸入文字並點擊「比較差異」查看結果</p>
+                </div>
+            `;
+            document.getElementById('stats').classList.add('hidden');
+        }
+
+        // Diff Algorithm (Myers algorithm simplified - LCS based)
+        function computeDiff(oldText, newText) {
+            const oldLines = oldText.split('\n');
+            const newLines = newText.split('\n');
+
+            // Compute LCS (Longest Common Subsequence)
+            const lcs = computeLCS(oldLines, newLines);
+
+            // Build diff from LCS
+            const diff = [];
+            let oldIdx = 0;
+            let newIdx = 0;
+
+            for (const item of lcs) {
+                // Add deleted lines
+                while (oldIdx < item.oldIndex) {
+                    diff.push({ type: 'del', content: oldLines[oldIdx], oldLineNum: oldIdx + 1 });
+                    oldIdx++;
+                }
+
+                // Add inserted lines
+                while (newIdx < item.newIndex) {
+                    diff.push({ type: 'add', content: newLines[newIdx], newLineNum: newIdx + 1 });
+                    newIdx++;
+                }
+
+                // Add context line
+                diff.push({
+                    type: 'context',
+                    content: oldLines[oldIdx],
+                    oldLineNum: oldIdx + 1,
+                    newLineNum: newIdx + 1
+                });
+                oldIdx++;
+                newIdx++;
+            }
+
+            // Add remaining deleted lines
+            while (oldIdx < oldLines.length) {
+                diff.push({ type: 'del', content: oldLines[oldIdx], oldLineNum: oldIdx + 1 });
+                oldIdx++;
+            }
+
+            // Add remaining inserted lines
+            while (newIdx < newLines.length) {
+                diff.push({ type: 'add', content: newLines[newIdx], newLineNum: newIdx + 1 });
+                newIdx++;
+            }
+
+            return diff;
+        }
+
+        function computeLCS(oldLines, newLines) {
+            const m = oldLines.length;
+            const n = newLines.length;
+
+            // DP table
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (oldLines[i - 1] === newLines[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+
+            // Backtrack to find LCS
+            const lcs = [];
+            let i = m, j = n;
+
+            while (i > 0 && j > 0) {
+                if (oldLines[i - 1] === newLines[j - 1]) {
+                    lcs.unshift({ oldIndex: i - 1, newIndex: j - 1 });
+                    i--;
+                    j--;
+                } else if (dp[i - 1][j] > dp[i][j - 1]) {
+                    i--;
+                } else {
+                    j--;
+                }
+            }
+
+            return lcs;
+        }
+
+        // Compare and display diff
+        function compareDiff() {
+            const text1 = document.getElementById('text1').value;
+            const text2 = document.getElementById('text2').value;
+
+            if (!text1 && !text2) {
+                alert('請至少輸入一段文字進行比較。');
+                return;
+            }
+
+            const diff = computeDiff(text1, text2);
+
+            // Count changes
+            let addCount = 0;
+            let delCount = 0;
+
+            diff.forEach(item => {
+                if (item.type === 'add') addCount++;
+                if (item.type === 'del') delCount++;
+            });
+
+            // Update stats
+            document.getElementById('addCount').textContent = addCount;
+            document.getElementById('delCount').textContent = delCount;
+            document.getElementById('stats').classList.remove('hidden');
+
+            // Render diff
+            const diffResult = document.getElementById('diffResult');
+
+            if (addCount === 0 && delCount === 0) {
+                diffResult.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full py-12" style="color: var(--diff-add-text);">
+                        <i class="fas fa-check-circle text-4xl mb-3"></i>
+                        <p class="font-semibold">兩段文字完全相同</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="diff-lines">';
+
+            diff.forEach(item => {
+                const typeClass = item.type === 'add' ? 'diff-add' : (item.type === 'del' ? 'diff-del' : 'diff-context');
+                const typeSymbol = item.type === 'add' ? '+' : (item.type === 'del' ? '−' : ' ');
+                const lineNum = item.type === 'del' ? item.oldLineNum : (item.type === 'add' ? item.newLineNum : item.oldLineNum);
+                const escapedContent = escapeHtml(item.content);
+
+                html += `
+                    <div class="diff-line ${typeClass}">
+                        <span class="diff-line-num">${lineNum}</span>
+                        <span class="diff-line-type">${typeSymbol}</span>
+                        <span class="diff-line-content">${escapedContent || ' '}</span>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            diffResult.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+</body>
+
+</html>
