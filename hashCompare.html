@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash 比較器 - My Toolkit</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f8f9fa;
+            --bg-header: #ffffff;
+            --text-primary: #213448;
+            --text-secondary: #547792;
+            --text-tertiary: #94B4C1;
+            --border-color: #94B4C1;
+            --accent-primary: #547792;
+            --accent-secondary: #94B4C1;
+            --shadow-color: rgba(84, 119, 146, 0.2);
+            --match-bg: rgba(34, 197, 94, 0.1);
+            --match-text: rgb(34, 197, 94);
+            --mismatch-bg: rgba(239, 68, 68, 0.1);
+            --mismatch-text: rgb(239, 68, 68);
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg-primary: #2a3441;
+            --bg-secondary: #1e2936;
+            --bg-tertiary: #3a4555;
+            --bg-header: #1e2936;
+            --text-primary: #e8eef3;
+            --text-secondary: #94B4C1;
+            --text-tertiary: #7a9aaa;
+            --border-color: #547792;
+            --accent-primary: #94B4C1;
+            --accent-secondary: #547792;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --match-bg: rgba(34, 197, 94, 0.2);
+            --match-text: rgb(74, 222, 128);
+            --mismatch-bg: rgba(239, 68, 68, 0.2);
+            --mismatch-text: rgb(248, 113, 113);
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 拖放區域樣式 */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background-color: var(--bg-secondary);
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.has-file {
+            border-style: solid;
+            border-color: var(--accent-primary);
+        }
+
+        /* Hash 值顯示樣式 */
+        .hash-value {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.75rem;
+            word-break: break-all;
+            padding: 0.5rem;
+            background-color: var(--bg-tertiary);
+            border-radius: 0.375rem;
+            transition: all 0.3s ease;
+        }
+
+        .hash-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 5rem;
+        }
+
+        /* 比較結果樣式 */
+        .match {
+            background-color: var(--match-bg);
+            color: var(--match-text);
+        }
+
+        .mismatch {
+            background-color: var(--mismatch-bg);
+            color: var(--mismatch-text);
+        }
+
+        /* 載入動畫 */
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 檔案資訊樣式 */
+        .file-info {
+            background-color: var(--bg-tertiary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        /* 按鈕樣式 */
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(148, 180, 193, 0.15);
+            border-color: var(--border-color);
+        }
+
+        /* 比較結果區塊 */
+        .comparison-result {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col p-4 md:p-6 gap-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="flex items-center gap-3">
+            <!-- Back to Home Link -->
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-fingerprint"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary); transition: color 0.3s ease;">Hash
+                    比較器</h1>
+                <p class="text-xs" style="color: var(--text-secondary); transition: color 0.3s ease;">
+                    計算並比較兩個檔案的 Hash 值</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="themeToggle" onclick="toggleTheme()"
+                class="px-4 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText">暗黑模式</span>
+            </button>
+            <button onclick="resetAll()" class="px-4 py-2 text-sm rounded-lg transition border"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i class="fas fa-undo mr-1"></i> 重置
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col gap-6 min-h-0 overflow-auto">
+
+        <!-- Upload Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- File 1 Drop Zone -->
+            <div class="flex flex-col gap-3">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                    <i class="fas fa-file mr-1"></i> 檔案 1
+                </h2>
+                <input type="file" id="fileInput1" class="hidden" onchange="handleFileSelect(event, 1)">
+                <div id="dropZone1" class="drop-zone" onclick="document.getElementById('fileInput1').click()"
+                    ondragover="handleDragOver(event, 'dropZone1')" ondragleave="handleDragLeave(event, 'dropZone1')"
+                    ondrop="handleDrop(event, 1)">
+                    <div id="dropZoneContent1">
+                        <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
+                        <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
+                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+                    </div>
+                </div>
+
+                <!-- File 1 Info -->
+                <div id="fileInfo1" class="file-info hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-semibold" style="color: var(--text-primary);">
+                            <i class="fas fa-file mr-2"></i>
+                            <span id="fileName1"></span>
+                        </span>
+                        <button onclick="removeFile(1)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
+                            style="color: var(--mismatch-text);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs" style="color: var(--text-secondary);">
+                        大小: <span id="fileSize1"></span>
+                    </p>
+                </div>
+
+                <!-- File 1 Hash Results -->
+                <div id="hashResults1" class="hidden flex flex-col gap-2">
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">MD5:</span>
+                        <span id="md5_1" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('md5_1')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA1:</span>
+                        <span id="sha1_1" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha1_1')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA256:</span>
+                        <span id="sha256_1" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha256_1')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA512:</span>
+                        <span id="sha512_1" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha512_1')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File 2 Drop Zone -->
+            <div class="flex flex-col gap-3">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                    <i class="fas fa-file mr-1"></i> 檔案 2
+                </h2>
+                <input type="file" id="fileInput2" class="hidden" onchange="handleFileSelect(event, 2)">
+                <div id="dropZone2" class="drop-zone" onclick="document.getElementById('fileInput2').click()"
+                    ondragover="handleDragOver(event, 'dropZone2')" ondragleave="handleDragLeave(event, 'dropZone2')"
+                    ondrop="handleDrop(event, 2)">
+                    <div id="dropZoneContent2">
+                        <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
+                        <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
+                        <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+                    </div>
+                </div>
+
+                <!-- File 2 Info -->
+                <div id="fileInfo2" class="file-info hidden">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-semibold" style="color: var(--text-primary);">
+                            <i class="fas fa-file mr-2"></i>
+                            <span id="fileName2"></span>
+                        </span>
+                        <button onclick="removeFile(2)" class="text-sm px-2 py-1 rounded hover:bg-red-100"
+                            style="color: var(--mismatch-text);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs" style="color: var(--text-secondary);">
+                        大小: <span id="fileSize2"></span>
+                    </p>
+                </div>
+
+                <!-- File 2 Hash Results -->
+                <div id="hashResults2" class="hidden flex flex-col gap-2">
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">MD5:</span>
+                        <span id="md5_2" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('md5_2')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA1:</span>
+                        <span id="sha1_2" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha1_2')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA256:</span>
+                        <span id="sha256_2" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha256_2')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="hash-label">SHA512:</span>
+                        <span id="sha512_2" class="hash-value flex-1">-</span>
+                        <button onclick="copyHash('sha512_2')" class="btn-secondary px-2 py-1" title="複製">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Upload Section -->
+        <div class="rounded-xl border p-4"
+            style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
+            <div class="flex items-center justify-between flex-wrap gap-3">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-upload" style="color: var(--accent-primary);"></i>
+                    <span class="font-semibold" style="color: var(--text-primary);">批次上傳</span>
+                    <span class="text-xs" style="color: var(--text-secondary);">一次選擇兩個檔案進行比較</span>
+                </div>
+                <div>
+                    <input type="file" id="batchFileInput" class="hidden" multiple onchange="handleBatchSelect(event)">
+                    <button onclick="document.getElementById('batchFileInput').click()"
+                        class="px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center gap-2">
+                        <i class="fas fa-folder-open"></i> 選擇兩個檔案
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Result -->
+        <div id="comparisonSection" class="hidden">
+            <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1 mb-3">
+                <i class="fas fa-balance-scale mr-1"></i> 比較結果
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div id="compare_md5" class="comparison-result">
+                    <div class="text-xs mb-1" style="color: var(--text-secondary);">MD5</div>
+                    <div id="compare_md5_result">-</div>
+                </div>
+                <div id="compare_sha1" class="comparison-result">
+                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA1</div>
+                    <div id="compare_sha1_result">-</div>
+                </div>
+                <div id="compare_sha256" class="comparison-result">
+                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA256</div>
+                    <div id="compare_sha256_result">-</div>
+                </div>
+                <div id="compare_sha512" class="comparison-result">
+                    <div class="text-xs mb-1" style="color: var(--text-secondary);">SHA512</div>
+                    <div id="compare_sha512_result">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MD5 Library (SparkMD5) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spark-md5/3.0.2/spark-md5.min.js"></script>
+
+    <script>
+        // File storage
+        let files = { 1: null, 2: null };
+        let hashes = {
+            1: { md5: null, sha1: null, sha256: null, sha512: null },
+            2: { md5: null, sha1: null, sha256: null, sha512: null }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+        });
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+                text.textContent = '暗黑模式';
+            } else {
+                icon.className = 'fas fa-sun';
+                text.textContent = '明亮模式';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+
+        // Drag and drop handlers
+        function handleDragOver(event, zoneId) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById(zoneId).classList.add('dragover');
+        }
+
+        function handleDragLeave(event, zoneId) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById(zoneId).classList.remove('dragover');
+        }
+
+        function handleDrop(event, fileIndex) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone' + fileIndex).classList.remove('dragover');
+
+            const droppedFiles = event.dataTransfer.files;
+            if (droppedFiles.length > 0) {
+                processFile(droppedFiles[0], fileIndex);
+            }
+        }
+
+        // File select handler
+        function handleFileSelect(event, fileIndex) {
+            const selectedFiles = event.target.files;
+            if (selectedFiles.length > 0) {
+                processFile(selectedFiles[0], fileIndex);
+            }
+        }
+
+        // Batch file select handler
+        function handleBatchSelect(event) {
+            const selectedFiles = event.target.files;
+            if (selectedFiles.length >= 1) {
+                processFile(selectedFiles[0], 1);
+            }
+            if (selectedFiles.length >= 2) {
+                processFile(selectedFiles[1], 2);
+            }
+            if (selectedFiles.length > 2) {
+                alert('只使用前兩個檔案進行比較。');
+            }
+        }
+
+        // Process uploaded file
+        function processFile(file, fileIndex) {
+            files[fileIndex] = file;
+
+            // Update UI
+            const dropZone = document.getElementById('dropZone' + fileIndex);
+            const dropZoneContent = document.getElementById('dropZoneContent' + fileIndex);
+            const fileInfo = document.getElementById('fileInfo' + fileIndex);
+            const hashResults = document.getElementById('hashResults' + fileIndex);
+
+            dropZone.classList.add('has-file');
+            dropZoneContent.innerHTML = `
+                <i class="fas fa-check-circle text-4xl mb-3" style="color: var(--match-text);"></i>
+                <p style="color: var(--text-primary);">${file.name}</p>
+                <p class="text-xs mt-2" style="color: var(--text-tertiary);">點擊更換檔案</p>
+            `;
+
+            // Show file info
+            fileInfo.classList.remove('hidden');
+            document.getElementById('fileName' + fileIndex).textContent = file.name;
+            document.getElementById('fileSize' + fileIndex).textContent = formatFileSize(file.size);
+
+            // Show hash results section with loading state
+            hashResults.classList.remove('hidden');
+            showLoadingState(fileIndex);
+
+            // Calculate hashes
+            calculateAllHashes(file, fileIndex);
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Show loading state for hash values
+        function showLoadingState(fileIndex) {
+            ['md5', 'sha1', 'sha256', 'sha512'].forEach(type => {
+                document.getElementById(`${type}_${fileIndex}`).innerHTML = '<span class="loading"></span>';
+            });
+        }
+
+        // Calculate all hash values
+        async function calculateAllHashes(file, fileIndex) {
+            try {
+                // Calculate hashes in parallel
+                const [md5Hash, sha1Hash, sha256Hash, sha512Hash] = await Promise.all([
+                    calculateMD5(file),
+                    calculateSHA(file, 'SHA-1'),
+                    calculateSHA(file, 'SHA-256'),
+                    calculateSHA(file, 'SHA-512')
+                ]);
+
+                // Store hashes
+                hashes[fileIndex] = {
+                    md5: md5Hash,
+                    sha1: sha1Hash,
+                    sha256: sha256Hash,
+                    sha512: sha512Hash
+                };
+
+                // Update UI
+                document.getElementById(`md5_${fileIndex}`).textContent = md5Hash;
+                document.getElementById(`sha1_${fileIndex}`).textContent = sha1Hash;
+                document.getElementById(`sha256_${fileIndex}`).textContent = sha256Hash;
+                document.getElementById(`sha512_${fileIndex}`).textContent = sha512Hash;
+
+                // Compare if both files are loaded
+                if (files[1] && files[2]) {
+                    compareHashes();
+                }
+            } catch (error) {
+                console.error('Hash calculation error:', error);
+                ['md5', 'sha1', 'sha256', 'sha512'].forEach(type => {
+                    document.getElementById(`${type}_${fileIndex}`).textContent = '計算錯誤';
+                });
+            }
+        }
+
+        // Calculate MD5 using SparkMD5 (Web Crypto API doesn't support MD5)
+        function calculateMD5(file) {
+            return new Promise((resolve, reject) => {
+                const blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
+                const chunkSize = 2097152; // 2MB chunks
+                const chunks = Math.ceil(file.size / chunkSize);
+                let currentChunk = 0;
+                const spark = new SparkMD5.ArrayBuffer();
+                const fileReader = new FileReader();
+
+                fileReader.onload = function (e) {
+                    spark.append(e.target.result);
+                    currentChunk++;
+
+                    if (currentChunk < chunks) {
+                        loadNext();
+                    } else {
+                        resolve(spark.end());
+                    }
+                };
+
+                fileReader.onerror = function () {
+                    reject(new Error('FileReader error'));
+                };
+
+                function loadNext() {
+                    const start = currentChunk * chunkSize;
+                    const end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
+                    fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+                }
+
+                loadNext();
+            });
+        }
+
+        // Calculate SHA hashes using Web Crypto API
+        async function calculateSHA(file, algorithm) {
+            const arrayBuffer = await file.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest(algorithm, arrayBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return hashHex;
+        }
+
+        // Compare hashes between two files
+        function compareHashes() {
+            const comparisonSection = document.getElementById('comparisonSection');
+            comparisonSection.classList.remove('hidden');
+
+            const hashTypes = ['md5', 'sha1', 'sha256', 'sha512'];
+
+            hashTypes.forEach(type => {
+                const container = document.getElementById(`compare_${type}`);
+                const resultEl = document.getElementById(`compare_${type}_result`);
+                const hash1 = hashes[1][type];
+                const hash2 = hashes[2][type];
+
+                if (hash1 && hash2) {
+                    if (hash1 === hash2) {
+                        container.classList.remove('mismatch');
+                        container.classList.add('match');
+                        resultEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 相符';
+                    } else {
+                        container.classList.remove('match');
+                        container.classList.add('mismatch');
+                        resultEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 不相符';
+                    }
+                } else {
+                    container.classList.remove('match', 'mismatch');
+                    resultEl.textContent = '-';
+                }
+            });
+        }
+
+        // Remove file
+        function removeFile(fileIndex) {
+            files[fileIndex] = null;
+            hashes[fileIndex] = { md5: null, sha1: null, sha256: null, sha512: null };
+
+            // Reset UI
+            const dropZone = document.getElementById('dropZone' + fileIndex);
+            const dropZoneContent = document.getElementById('dropZoneContent' + fileIndex);
+            const fileInfo = document.getElementById('fileInfo' + fileIndex);
+            const hashResults = document.getElementById('hashResults' + fileIndex);
+            const fileInput = document.getElementById('fileInput' + fileIndex);
+
+            dropZone.classList.remove('has-file');
+            dropZoneContent.innerHTML = `
+                <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
+                <p style="color: var(--text-primary);">拖放檔案至此處或點擊選擇</p>
+                <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援任何類型的檔案</p>
+            `;
+
+            fileInfo.classList.add('hidden');
+            hashResults.classList.add('hidden');
+            fileInput.value = '';
+
+            // Reset comparison if needed
+            if (!files[1] || !files[2]) {
+                resetComparison();
+            }
+        }
+
+        // Reset comparison results
+        function resetComparison() {
+            const comparisonSection = document.getElementById('comparisonSection');
+            comparisonSection.classList.add('hidden');
+
+            const hashTypes = ['md5', 'sha1', 'sha256', 'sha512'];
+            hashTypes.forEach(type => {
+                const container = document.getElementById(`compare_${type}`);
+                const resultEl = document.getElementById(`compare_${type}_result`);
+                container.classList.remove('match', 'mismatch');
+                resultEl.textContent = '-';
+            });
+        }
+
+        // Reset all
+        function resetAll() {
+            removeFile(1);
+            removeFile(2);
+            document.getElementById('batchFileInput').value = '';
+        }
+
+        // Copy hash to clipboard
+        async function copyHash(elementId) {
+            const hashValue = document.getElementById(elementId).textContent;
+            if (hashValue && hashValue !== '-' && !hashValue.includes('loading')) {
+                try {
+                    await navigator.clipboard.writeText(hashValue);
+                    showCopyFeedback(elementId);
+                } catch (err) {
+                    console.error('Copy failed:', err);
+                }
+            }
+        }
+
+        // Show copy feedback
+        function showCopyFeedback(elementId) {
+            const el = document.getElementById(elementId);
+            el.style.backgroundColor = 'var(--match-bg)';
+            setTimeout(() => {
+                el.style.backgroundColor = 'var(--bg-tertiary)';
+            }, 300);
+        }
+    </script>
+
+</body>
+
+</html>
