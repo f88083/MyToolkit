@@ -635,8 +635,9 @@
 
         // Render JSON as a collapsible tree
         function renderJSONTree(obj, indent = 0) {
-            const indentStr = '  '.repeat(indent);
-            const nextIndentStr = '  '.repeat(indent + 1);
+            const indentUnit = ' '.repeat(currentIndent); // 使用 currentIndent 動態計算
+            const indentStr = indentUnit.repeat(indent);
+            const nextIndentStr = indentUnit.repeat(indent + 1);
 
             if (obj === null) {
                 return `<span class="json-null">null</span>`;
