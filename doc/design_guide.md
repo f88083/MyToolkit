@@ -788,40 +788,20 @@ table.editor-table td {
     
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- 共用樣式 (包含字體、CSS 變數、body 樣式、通用按鈕樣式) -->
+    <link href="common.css" rel="stylesheet">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
-
+        /* 此工具專用的 CSS 變數或樣式 */
         :root {
-            /* Light Mode Colors */
-            --bg-primary: #ffffff;
-            --bg-secondary: #ffffff;
-            --bg-header: #ffffff;
-            --text-primary: #213448;
-            --text-secondary: #547792;
-            --border-color: #94B4C1;
-            --accent-primary: #547792;
-            --shadow-color: rgba(84, 119, 146, 0.2);
+            /* 例如：--custom-variable: #value; */
         }
 
         [data-theme="dark"] {
-            /* Dark Mode Colors */
-            --bg-primary: #2a3441;
-            --bg-secondary: #1e2936;
-            --bg-header: #1e2936;
-            --text-primary: #e8eef3;
-            --text-secondary: #94B4C1;
-            --border-color: #547792;
-            --accent-primary: #94B4C1;
-            --shadow-color: rgba(0, 0, 0, 0.3);
+            /* 暗黑模式的專用變數 */
         }
 
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
+        /* 工具專用樣式 */
     </style>
 </head>
 
