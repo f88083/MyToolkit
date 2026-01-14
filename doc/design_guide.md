@@ -550,9 +550,9 @@ table.editor-table tbody tr:hover td {
 
 ## 🌓 主題切換
 
-### JavaScript 實作
+### 共用 JavaScript 檔案
 
-所有頁面使用相同的主題切換邏輯：
+所有頁面使用 `common.js` 共用主題切換邏輯：
 
 ```javascript
 // 切換主題
@@ -573,11 +573,11 @@ function updateThemeButton(theme) {
     const text = document.getElementById('themeText');
     
     if (theme === 'dark') {
-        icon.className = 'fas fa-sun';
-        if (text) text.textContent = '明亮模式';
-    } else {
         icon.className = 'fas fa-moon';
         if (text) text.textContent = '暗黑模式';
+    } else {
+        icon.className = 'fas fa-sun';
+        if (text) text.textContent = '明亮模式';
     }
 }
 
@@ -598,8 +598,35 @@ document.addEventListener('DOMContentLoaded', () => {
 - 使用 `data-theme` 屬性控制主題
 - 主題偏好儲存在 `localStorage`
 - 預設為淺色模式
-- **按鈕顯示當前模式**：暗黑模式顯示太陽圖標和「明亮模式」（表示可切換到明亮），反之亦然
+- **按鈕顯示當前模式**：暗黑模式顯示月亮圖標和「暗黑模式」，明亮模式顯示太陽圖標和「明亮模式」
 - 首頁只顯示圖示，工具頁面顯示圖示+文字
+
+### 防止主題閃爍 (重要！)
+
+> [!IMPORTANT]
+> **阻塞腳本**
+>
+> 為避免頁面載入時出現主題閃爍（用戶保存暗黑模式偏好但頁面先顯示白色），必須在 `<head>` 中加入一個**立即執行的阻塞腳本**，在 CSS 載入後、DOM 渲染前設定主題。
+
+```html
+<!-- 在 <head> 中，CSS 檔案之後，立即加入 -->
+
+<!-- 立即設定主題，避免頁面閃爍 -->
+<script>
+    (function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+</script>
+
+<!-- 共用 JavaScript -->
+<script src="common.js"></script>
+```
+
+**為什麼需要這個阻塞腳本？**
+1. `DOMContentLoaded` 事件在 DOM 完成解析後才觸發，此時用戶已經看到初始渲染
+2. 使用立即執行函數 (IIFE) 可以在 CSS 變數生效前就設定 `data-theme`
+3. 這確保第一次渲染就是正確的主題，沒有閃爍
 
 ---
 

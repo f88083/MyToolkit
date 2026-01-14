@@ -28,6 +28,17 @@
     <!-- 共用樣式 -->
     <link href="common.css" rel="stylesheet">
 
+    <!-- 立即設定主題，避免頁面閃爍 -->
+    <script>
+            (function () {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            })();
+    </script>
+
+    <!-- 共用 JavaScript -->
+    <script src="common.js"></script>
+
     <style>
         /* Hash 專用 CSS 變數 - Light */
         :root {
