@@ -21,46 +21,24 @@
         }
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    <!-- 共用樣式 -->
+    <link href="common.css" rel="stylesheet">
 
+    <style>
+        /* 首頁專用 CSS 變數 - Light */
         :root {
-            /* Light Mode Colors */
-            --bg-primary: #ffffff;
-            --bg-secondary: #ffffff;
-            --bg-header: #ffffff;
             --bg-hero: #547792;
-            --text-primary: #213448;
-            --text-secondary: #547792;
             --text-hero: #ffffff;
-            --border-color: #94B4C1;
             --card-bg: #ffffff;
             --card-border: #94B4C1;
-            --accent-primary: #547792;
-            --shadow-color: rgba(84, 119, 146, 0.2);
         }
 
+        /* 首頁專用 CSS 變數 - Dark */
         [data-theme="dark"] {
-            /* Dark Mode Colors */
-            --bg-primary: #2a3441;
-            --bg-secondary: #1e2936;
-            --bg-header: #1e2936;
             --bg-hero: #3d4f5f;
-            --text-primary: #e8eef3;
-            --text-secondary: #94B4C1;
             --text-hero: #e8eef3;
-            --border-color: #547792;
             --card-bg: #1e2936;
             --card-border: #547792;
-            --accent-primary: #94B4C1;
-            --shadow-color: rgba(0, 0, 0, 0.3);
-        }
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .tool-card {
