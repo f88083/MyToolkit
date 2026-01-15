@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to Text - My Toolkit</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- 共用樣式 -->
+    <link href="common.css" rel="stylesheet">
+
+    <!-- 立即設定主題，避免頁面閃爍 -->
+    <script>
+            (function () {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            })();
+    </script>
+
+    <!-- 共用 JavaScript -->
+    <script src="common.js"></script>
+
+    <!-- Tesseract.js OCR Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <style>
+        /* Image to Text 專用 CSS 變數 - Light */
+        :root {
+            --progress-bg: rgba(148, 180, 193, 0.2);
+            --progress-fill: #547792;
+        }
+
+        /* Image to Text 專用 CSS 變數 - Dark */
+        [data-theme="dark"] {
+            --progress-bg: rgba(148, 180, 193, 0.3);
+            --progress-fill: #94B4C1;
+        }
+
+        /* 拖放區域樣式 */
+        .drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background-color: var(--bg-secondary);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--accent-primary);
+            background-color: var(--bg-tertiary);
+            transform: scale(1.02);
+        }
+
+        .drop-zone.has-image {
+            border-style: solid;
+            border-color: var(--accent-primary);
+            padding: 1rem;
+        }
+
+        /* 圖片預覽 */
+        .image-preview {
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+        }
+
+        /* 結果區域樣式 */
+        .result-area {
+            background-color: var(--code-bg);
+            color: var(--code-text);
+            font-family: 'Consolas', 'Monaco', monospace;
+            border-radius: 0.5rem;
+            min-height: 200px;
+            resize: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* 進度條 */
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--progress-bg);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--progress-fill);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        /* 載入動畫 */
+        .loading-spinner {
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 語言選擇樣式 */
+        .language-select {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .language-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        /* 複製成功提示 */
+        .copy-toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--accent-primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .copy-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col p-4 md:p-6 gap-6">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="flex items-center gap-3">
+            <!-- Back to Home Link -->
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-file-image"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary); transition: color 0.3s ease;">Image to
+                    Text</h1>
+                <p class="text-xs" style="color: var(--text-secondary); transition: color 0.3s ease;">
+                    從圖片中擷取文字，支援多種語言</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="themeToggle" onclick="toggleTheme()"
+                class="px-4 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText">暗黑模式</span>
+            </button>
+            <button onclick="resetAll()" class="px-4 py-2 text-sm rounded-lg transition border"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i class="fas fa-undo mr-1"></i> 重置
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+
+        <!-- Left Panel: Image Upload -->
+        <div class="flex-1 flex flex-col gap-4 min-h-0">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                    <i class="fas fa-image mr-1"></i> 上傳圖片
+                </h2>
+            </div>
+
+            <!-- Drop Zone -->
+            <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="handleFileSelect(event)">
+            <div id="dropZone" class="drop-zone flex-1" onclick="document.getElementById('fileInput').click()"
+                ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                <div id="dropZoneContent">
+                    <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
+                    <p style="color: var(--text-primary);">拖放圖片至此處或點擊選擇</p>
+                    <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援 JPG、PNG、GIF、BMP、WebP 格式</p>
+                    <p class="text-xs mt-1" style="color: var(--text-tertiary);">也可以使用 Ctrl+V 貼上圖片</p>
+                </div>
+            </div>
+
+            <!-- Language Selection & Extract Button -->
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-1">
+                    <label class="block text-xs mb-1" style="color: var(--text-secondary);">
+                        <i class="fas fa-language mr-1"></i> 選擇語言
+                    </label>
+                    <select id="languageSelect" class="language-select w-full">
+                        <option value="chi_tra+eng">繁體中文 + 英文 (推薦)</option>
+                        <option value="chi_sim+eng">簡體中文 + 英文</option>
+                        <option value="eng">英文</option>
+                        <option value="chi_tra">繁體中文</option>
+                        <option value="chi_sim">簡體中文</option>
+                        <option value="jpn">日文</option>
+                        <option value="kor">韓文</option>
+                        <option value="chi_tra+chi_sim+eng">繁簡中文 + 英文</option>
+                        <option value="jpn+eng">日文 + 英文</option>
+                        <option value="kor+eng">韓文 + 英文</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button id="extractBtn" onclick="extractText()" disabled
+                        class="w-full sm:w-auto px-6 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-magic"></i> 擷取文字
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div id="progressSection" class="hidden">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="loading-spinner"></span>
+                    <span id="progressText" class="text-sm" style="color: var(--text-primary);">正在辨識...</span>
+                </div>
+                <div class="progress-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Result -->
+        <div class="flex-1 flex flex-col gap-4 min-h-0">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider px-1">
+                    <i class="fas fa-file-alt mr-1"></i> 辨識結果
+                </h2>
+                <button id="copyBtn" onclick="copyResult()" disabled
+                    class="px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-copy"></i> 複製
+                </button>
+            </div>
+
+            <textarea id="resultArea" class="result-area flex-1 w-full p-4 focus:outline-none" readonly
+                placeholder="辨識結果將顯示在這裡..."></textarea>
+
+            <!-- Character Count -->
+            <div class="flex items-center justify-between text-xs" style="color: var(--text-tertiary);">
+                <span id="charCount">0 個字元</span>
+                <span id="lineCount">0 行</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Instructions (Collapsible) -->
+    <div class="rounded-xl border overflow-hidden flex-shrink-0"
+        style="background: linear-gradient(to right, var(--bg-tertiary), var(--bg-secondary)); border-color: var(--border-color); transition: all 0.3s ease;">
+        <button onclick="toggleInstructions()" class="w-full px-4 py-2 flex items-center justify-between transition"
+            style="background: transparent;" onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.1)'"
+            onmouseout="this.style.backgroundColor='transparent'">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-question-circle text-sm" style="color: var(--text-tertiary);"></i>
+                <span class="text-xs" style="color: var(--text-tertiary);">使用說明</span>
+            </div>
+            <i id="instructionsIcon" class="fas fa-chevron-down text-xs transition-transform"
+                style="color: var(--text-tertiary);"></i>
+        </button>
+
+        <div id="instructionsContent" class="hidden px-4 pb-4 pt-2">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Upload Methods -->
+                <div class="rounded-lg p-3 shadow-sm"
+                    style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                        <i class="fas fa-upload text-custom-medium"></i>
+                        上傳方式
+                    </h3>
+                    <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-600 mt-0.5"></i>
+                            <span><strong>拖放圖片</strong>至左側上傳區域</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-600 mt-0.5"></i>
+                            <span><strong>點擊區域</strong>開啟檔案選擇器</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-check text-green-600 mt-0.5"></i>
+                            <span>使用 <strong>Ctrl+V</strong> 貼上剪貼簿圖片</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Supported Languages -->
+                <div class="rounded-lg p-3 shadow-sm"
+                    style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                        <i class="fas fa-language text-custom-medium"></i>
+                        支援語言
+                    </h3>
+                    <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-globe text-custom-light mt-0.5"></i>
+                            <span><strong>繁體中文</strong>、<strong>簡體中文</strong></span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-globe text-custom-light mt-0.5"></i>
+                            <span><strong>英文</strong>、<strong>日文</strong>、<strong>韓文</strong></span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-globe text-custom-light mt-0.5"></i>
+                            <span>支援<strong>多語言混合</strong>辨識</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tips -->
+                <div class="rounded-lg p-3 shadow-sm"
+                    style="background-color: var(--bg-secondary); transition: background-color 0.3s ease;">
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                        <i class="fas fa-lightbulb text-custom-medium"></i>
+                        使用技巧
+                    </h3>
+                    <ul class="space-y-1 text-xs" style="color: var(--text-primary);">
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-yellow-500 mt-0.5"></i>
+                            <span>圖片<strong>清晰度越高</strong>，辨識越準確</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-yellow-500 mt-0.5"></i>
+                            <span>選擇正確語言可<strong>提高準確率</strong></span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fas fa-star text-yellow-500 mt-0.5"></i>
+                            <span>首次使用需下載語言模型，請耐心等待</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Privacy Note -->
+            <div class="mt-3 rounded-lg p-2 text-center" style="background-color: var(--bg-tertiary);">
+                <p class="text-xs flex items-center justify-center gap-2" style="color: var(--text-secondary);">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>所有圖片均在<strong>本機瀏覽器</strong>中處理，不會上傳至任何伺服器</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy Toast -->
+    <div id="copyToast" class="copy-toast">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span>已複製到剪貼簿</span>
+    </div>
+
+    <script>
+        // State
+        let currentImage = null;
+        let worker = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            setupPasteHandler();
+        });
+
+        // Theme toggle functionality
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeButton(newTheme);
+        }
+
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+                text.textContent = '暗黑模式';
+            } else {
+                icon.className = 'fas fa-sun';
+                text.textContent = '明亮模式';
+            }
+        }
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButton(savedTheme);
+        }
+
+        // Toggle instructions panel
+        function toggleInstructions() {
+            const content = document.getElementById('instructionsContent');
+            const icon = document.getElementById('instructionsIcon');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                icon.classList.remove('rotate-180');
+            }
+        }
+
+        // Paste handler for Ctrl+V
+        function setupPasteHandler() {
+            document.addEventListener('paste', async (event) => {
+                const items = event.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.startsWith('image/')) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            processImage(file);
+                        }
+                        break;
+                    }
+                }
+            });
+        }
+
+        // Drag and drop handlers
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone').classList.remove('dragover');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.getElementById('dropZone').classList.remove('dragover');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                processImage(files[0]);
+            }
+        }
+
+        // File select handler
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                processImage(files[0]);
+            }
+        }
+
+        // Process uploaded image
+        function processImage(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('請上傳圖片檔案');
+                return;
+            }
+
+            currentImage = file;
+
+            // Show image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dropZone = document.getElementById('dropZone');
+                const dropZoneContent = document.getElementById('dropZoneContent');
+
+                dropZone.classList.add('has-image');
+                dropZoneContent.innerHTML = `
+                    <img src="${e.target.result}" alt="預覽圖片" class="image-preview mb-2">
+                    <p class="text-xs" style="color: var(--text-primary);">${file.name}</p>
+                    <p class="text-xs mt-1" style="color: var(--text-tertiary);">點擊更換圖片</p>
+                `;
+
+                // Enable extract button
+                document.getElementById('extractBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Extract text from image
+        async function extractText() {
+            if (!currentImage) {
+                alert('請先上傳圖片');
+                return;
+            }
+
+            const languages = document.getElementById('languageSelect').value;
+            const progressSection = document.getElementById('progressSection');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const extractBtn = document.getElementById('extractBtn');
+            const resultArea = document.getElementById('resultArea');
+
+            // Show progress
+            progressSection.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            extractBtn.disabled = true;
+            resultArea.value = '';
+
+            try {
+                // Create worker if not exists
+                progressText.textContent = '正在載入語言模型...';
+
+                const result = await Tesseract.recognize(
+                    currentImage,
+                    languages,
+                    {
+                        logger: (m) => {
+                            if (m.status === 'recognizing text') {
+                                const percent = Math.round(m.progress * 100);
+                                progressBar.style.width = `${percent}%`;
+                                progressText.textContent = `正在辨識... ${percent}%`;
+                            } else if (m.status === 'loading language traineddata') {
+                                progressText.textContent = `正在載入語言模型...`;
+                            } else if (m.status === 'initializing tesseract') {
+                                progressText.textContent = '正在初始化 OCR 引擎...';
+                            }
+                        }
+                    }
+                );
+
+                // Format the result to preserve layout
+                const formattedText = formatOCRResult(result);
+                resultArea.value = formattedText;
+
+                // Update counts
+                updateCounts(formattedText);
+
+                // Enable copy button
+                document.getElementById('copyBtn').disabled = false;
+
+            } catch (error) {
+                console.error('OCR Error:', error);
+                resultArea.value = `辨識失敗：${error.message}`;
+            } finally {
+                // Hide progress
+                progressSection.classList.add('hidden');
+                extractBtn.disabled = false;
+            }
+        }
+
+        // Format OCR result to preserve layout
+        function formatOCRResult(result) {
+            if (!result.data || !result.data.paragraphs) {
+                return result.data.text || '';
+            }
+
+            const paragraphs = result.data.paragraphs;
+            let formattedText = '';
+            let lastBottom = 0;
+
+            for (let i = 0; i < paragraphs.length; i++) {
+                const para = paragraphs[i];
+                const paraText = para.text.trim();
+
+                if (!paraText) continue;
+
+                // Check vertical gap between paragraphs
+                if (i > 0 && para.bbox) {
+                    const gap = para.bbox.y0 - lastBottom;
+                    const avgLineHeight = (para.bbox.y1 - para.bbox.y0) / (paraText.split('\n').length || 1);
+
+                    // If gap is larger than line height, add extra newline
+                    if (gap > avgLineHeight * 1.5) {
+                        formattedText += '\n';
+                    }
+                }
+
+                formattedText += paraText + '\n';
+
+                if (para.bbox) {
+                    lastBottom = para.bbox.y1;
+                }
+            }
+
+            return formattedText.trim();
+        }
+
+        // Update character and line counts
+        function updateCounts(text) {
+            const charCount = text.length;
+            const lineCount = text ? text.split('\n').length : 0;
+
+            document.getElementById('charCount').textContent = `${charCount} 個字元`;
+            document.getElementById('lineCount').textContent = `${lineCount} 行`;
+        }
+
+        // Copy result to clipboard
+        async function copyResult() {
+            const resultArea = document.getElementById('resultArea');
+            const text = resultArea.value;
+
+            if (!text) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showCopyToast();
+            } catch (err) {
+                // Fallback for older browsers
+                resultArea.select();
+                document.execCommand('copy');
+                showCopyToast();
+            }
+        }
+
+        // Show copy toast notification
+        function showCopyToast() {
+            const toast = document.getElementById('copyToast');
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // Reset all
+        function resetAll() {
+            currentImage = null;
+
+            // Reset drop zone
+            const dropZone = document.getElementById('dropZone');
+            const dropZoneContent = document.getElementById('dropZoneContent');
+
+            dropZone.classList.remove('has-image');
+            dropZoneContent.innerHTML = `
+                <i class="fas fa-cloud-upload-alt text-4xl mb-3" style="color: var(--accent-secondary);"></i>
+                <p style="color: var(--text-primary);">拖放圖片至此處或點擊選擇</p>
+                <p class="text-xs mt-2" style="color: var(--text-tertiary);">支援 JPG、PNG、GIF、BMP、WebP 格式</p>
+                <p class="text-xs mt-1" style="color: var(--text-tertiary);">也可以使用 Ctrl+V 貼上圖片</p>
+            `;
+
+            // Reset file input
+            document.getElementById('fileInput').value = '';
+
+            // Reset result
+            document.getElementById('resultArea').value = '';
+            updateCounts('');
+
+            // Disable buttons
+            document.getElementById('extractBtn').disabled = true;
+            document.getElementById('copyBtn').disabled = true;
+
+            // Hide progress
+            document.getElementById('progressSection').classList.add('hidden');
+        }
+    </script>
+
+</body>
+
+</html>
