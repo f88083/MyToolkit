@@ -27,6 +27,9 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
+    <!-- 共用 CSS -->
+    <link href="common.css" rel="stylesheet">
+
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -325,11 +328,25 @@
                             <span id="imageCount" class="text-sm font-normal" style="color: var(--text-secondary);">(0
                                 張)</span>
                         </h2>
-                        <button onclick="clearAllImages()"
-                            class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
-                            <i class="fas fa-trash-alt"></i>
-                            清除全部
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="sortImages('asc')" id="sortAscBtn"
+                                class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-2"
+                                title="依名稱升序排序">
+                                <i class="fas fa-sort-alpha-down"></i>
+                                <span class="hidden sm:inline">升序</span>
+                            </button>
+                            <button onclick="sortImages('desc')" id="sortDescBtn"
+                                class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-2"
+                                title="依名稱降序排序">
+                                <i class="fas fa-sort-alpha-down-alt"></i>
+                                <span class="hidden sm:inline">降序</span>
+                            </button>
+                            <button onclick="clearAllImages()"
+                                class="btn-secondary px-3 py-1.5 rounded-lg text-sm flex items-center gap-2">
+                                <i class="fas fa-trash-alt"></i>
+                                清除全部
+                            </button>
+                        </div>
                     </div>
                     <p class="text-xs mb-4" style="color: var(--text-tertiary);">
                         <i class="fas fa-info-circle mr-1"></i>
@@ -460,6 +477,7 @@
         // Global state
         let images = [];
         let draggedItem = null;
+        let currentSortOrder = 'asc'; // Track current sort order
 
         // Theme toggle functionality
         function toggleTheme() {
@@ -522,6 +540,9 @@
                 return;
             }
 
+            let loadedCount = 0;
+            const totalFiles = imageFiles.length;
+
             imageFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function (e) {
@@ -535,13 +556,57 @@
                             height: img.height,
                             size: file.size
                         });
-                        renderImageGrid();
-                        updateUI();
+                        loadedCount++;
+
+                        // Sort images by name after all files are loaded
+                        if (loadedCount === totalFiles) {
+                            sortImages(currentSortOrder);
+                        } else {
+                            renderImageGrid();
+                            updateUI();
+                        }
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             });
+        }
+
+        // Sort images by filename
+        function sortImages(order) {
+            currentSortOrder = order;
+
+            images.sort((a, b) => {
+                // Natural sort comparison for filenames with numbers
+                const nameA = a.name.toLowerCase();
+                const nameB = b.name.toLowerCase();
+
+                // Use localeCompare with numeric option for natural sorting
+                const comparison = nameA.localeCompare(nameB, undefined, {
+                    numeric: true,
+                    sensitivity: 'base'
+                });
+
+                return order === 'asc' ? comparison : -comparison;
+            });
+
+            renderImageGrid();
+            updateUI();
+            updateSortButtonStyles();
+        }
+
+        // Update sort button styles to show current sort order
+        function updateSortButtonStyles() {
+            const ascBtn = document.getElementById('sortAscBtn');
+            const descBtn = document.getElementById('sortDescBtn');
+
+            if (currentSortOrder === 'asc') {
+                ascBtn.classList.add('active');
+                descBtn.classList.remove('active');
+            } else {
+                descBtn.classList.add('active');
+                ascBtn.classList.remove('active');
+            }
         }
 
         function removeImage(id) {

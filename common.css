@@ -85,3 +85,9 @@ body {
     background-color: rgba(148, 180, 193, 0.15);
     border-color: var(--border-color);
 }
+
+.btn-secondary.active {
+    background-color: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+}
