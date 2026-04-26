@@ -173,6 +173,40 @@
             color: var(--diff-del-text);
         }
 
+        /* 字元層級 highlight */
+        .char-add {
+            background-color: rgba(34, 197, 94, 0.4);
+            border-radius: 2px;
+        }
+
+        .char-del {
+            background-color: rgba(239, 68, 68, 0.4);
+            border-radius: 2px;
+        }
+
+        [data-theme="dark"] .char-add {
+            background-color: rgba(34, 197, 94, 0.5);
+        }
+
+        [data-theme="dark"] .char-del {
+            background-color: rgba(239, 68, 68, 0.5);
+        }
+
+        /* 空白字元視覺化 - 使用 inline-block 確保寬度一致 */
+        .whitespace-space {
+            display: inline-block;
+            width: 1ch;
+            text-align: center;
+            opacity: 0.6;
+        }
+
+        .whitespace-tab {
+            display: inline-block;
+            width: 4ch;
+            text-align: left;
+            opacity: 0.6;
+        }
+
         .diff-context .diff-line-content {
             color: var(--text-primary);
         }
@@ -723,6 +757,124 @@
             return lcs;
         }
 
+        // 計算兩個字串的字元層級差異 (用於 inline highlight)
+        function computeCharDiff(oldStr, newStr) {
+            // 使用簡單的 LCS 算法來找出字元層級的差異
+            const m = oldStr.length;
+            const n = newStr.length;
+
+            // DP 表格
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (oldStr[i - 1] === newStr[j - 1]) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+
+            // 回溯找出 LCS
+            const commonChars = [];
+            let i = m, j = n;
+            while (i > 0 && j > 0) {
+                if (oldStr[i - 1] === newStr[j - 1]) {
+                    commonChars.unshift({ oldIdx: i - 1, newIdx: j - 1, char: oldStr[i - 1] });
+                    i--;
+                    j--;
+                } else if (dp[i - 1][j] > dp[i][j - 1]) {
+                    i--;
+                } else {
+                    j--;
+                }
+            }
+
+            return commonChars;
+        }
+
+        // 將字元包裝成可視化的空白字元
+        function visualizeWhitespace(char, isHighlighted, highlightClass) {
+            const escaped = escapeHtml(char);
+            if (char === ' ') {
+                // 空格顯示為點，使用固定寬度 1ch
+                const marker = isHighlighted ?
+                    `<span class="${highlightClass}"><span class="whitespace-space">·</span></span>` :
+                    escaped;
+                return marker;
+            } else if (char === '\t') { // Corrected from '\\t' to '\t'
+                // Tab 顯示為箭頭，使用固定寬度 4ch
+                const marker = isHighlighted ?
+                    `<span class="${highlightClass}"><span class="whitespace-tab">→</span></span>` :
+                    `<span class="whitespace-tab">→</span>`;
+                return marker;
+            }
+            return isHighlighted ? `<span class="${highlightClass}">${escaped}</span>` : escaped;
+        }
+
+        // 生成帶有字元層級 highlight 的 HTML
+        function renderInlineDiff(oldStr, newStr, type) {
+            const commonChars = computeCharDiff(oldStr, newStr);
+            const targetStr = type === 'del' ? oldStr : newStr;
+            const highlightClass = type === 'del' ? 'char-del' : 'char-add';
+
+            // 建立一個 Set 來追蹤哪些字元是共同的
+            const commonIdxSet = new Set();
+            for (const item of commonChars) {
+                const idx = type === 'del' ? item.oldIdx : item.newIdx;
+                commonIdxSet.add(idx);
+            }
+
+            // 將字元分組：連續的 highlight 或非 highlight 字元放在一起
+            const groups = [];
+            let currentGroup = null;
+
+            for (let i = 0; i < targetStr.length; i++) {
+                const char = targetStr[i];
+                const isHighlighted = !commonIdxSet.has(i);
+
+                if (currentGroup === null || currentGroup.isHighlighted !== isHighlighted) {
+                    // 開始新的分組
+                    currentGroup = { isHighlighted, chars: [char] };
+                    groups.push(currentGroup);
+                } else {
+                    // 加入當前分組
+                    currentGroup.chars.push(char);
+                }
+            }
+
+            // 生成 HTML
+            let html = '';
+            for (const group of groups) {
+                if (group.isHighlighted) {
+                    // highlight 的分組：整組包在一個 span 裡
+                    let innerHtml = '';
+                    for (const char of group.chars) {
+                        innerHtml += renderWhitespaceChar(char);
+                    }
+                    html += `<span class="${highlightClass}">${innerHtml}</span>`;
+                } else {
+                    // 非 highlight 的分組：直接輸出
+                    for (const char of group.chars) {
+                        html += escapeHtml(char);
+                    }
+                }
+            }
+
+            return html || ' ';
+        }
+
+        // 單純渲染空白字元（不包含 highlight span）
+        function renderWhitespaceChar(char) {
+            if (char === ' ') {
+                return `<span class="whitespace-space">·</span>`;
+            } else if (char === '\t') {
+                return `<span class="whitespace-tab">→</span>`;
+            }
+            return escapeHtml(char);
+        }
+
         // Compare and display diff
         function compareDiff() {
             const text1 = document.getElementById('text1').value;
@@ -762,19 +914,73 @@
                 return;
             }
 
+            // 配對連續的 del/add 行來做字元層級比較
+            const pairedDiff = [];
+            let i = 0;
+            while (i < diff.length) {
+                if (diff[i].type === 'del') {
+                    // 找連續的 del 行
+                    const delStart = i;
+                    while (i < diff.length && diff[i].type === 'del') i++;
+                    const delEnd = i;
+
+                    // 找連續的 add 行
+                    const addStart = i;
+                    while (i < diff.length && diff[i].type === 'add') i++;
+                    const addEnd = i;
+
+                    // 配對 del 和 add
+                    const delLines = diff.slice(delStart, delEnd);
+                    const addLines = diff.slice(addStart, addEnd);
+                    const maxLen = Math.max(delLines.length, addLines.length);
+
+                    for (let j = 0; j < maxLen; j++) {
+                        if (j < delLines.length && j < addLines.length) {
+                            // 有配對，標記為 paired
+                            pairedDiff.push({ ...delLines[j], paired: addLines[j].content });
+                            pairedDiff.push({ ...addLines[j], paired: delLines[j].content });
+                        } else if (j < delLines.length) {
+                            pairedDiff.push(delLines[j]);
+                        } else {
+                            pairedDiff.push(addLines[j]);
+                        }
+                    }
+                } else {
+                    pairedDiff.push(diff[i]);
+                    i++;
+                }
+            }
+
             let html = '<div class="diff-lines">';
 
-            diff.forEach(item => {
+            pairedDiff.forEach(item => {
                 const typeClass = item.type === 'add' ? 'diff-add' : (item.type === 'del' ? 'diff-del' : 'diff-context');
                 const typeSymbol = item.type === 'add' ? '+' : (item.type === 'del' ? '−' : ' ');
                 const lineNum = item.type === 'del' ? item.oldLineNum : (item.type === 'add' ? item.newLineNum : item.oldLineNum);
-                const escapedContent = escapeHtml(item.content);
+
+                let contentHtml;
+                if (item.paired !== undefined) {
+                    // 有配對的行，使用字元層級 diff
+                    const oldStr = item.type === 'del' ? item.content : item.paired;
+                    const newStr = item.type === 'add' ? item.content : item.paired;
+                    contentHtml = renderInlineDiff(oldStr, newStr, item.type);
+                } else if (item.type === 'context') {
+                    contentHtml = escapeHtml(item.content) || ' ';
+                } else {
+                    // 沒有配對的 add/del 行，全行 highlight（整行包在一個 span）
+                    const highlightClass = item.type === 'del' ? 'char-del' : 'char-add';
+                    let innerHtml = '';
+                    for (const char of item.content) {
+                        innerHtml += renderWhitespaceChar(char);
+                    }
+                    contentHtml = innerHtml ? `<span class="${highlightClass}">${innerHtml}</span>` : ' ';
+                }
 
                 html += `
                     <div class="diff-line ${typeClass}">
                         <span class="diff-line-num">${lineNum}</span>
                         <span class="diff-line-type">${typeSymbol}</span>
-                        <span class="diff-line-content">${escapedContent || ' '}</span>
+                        <span class="diff-line-content">${contentHtml}</span>
                     </div>
                 `;
             });
