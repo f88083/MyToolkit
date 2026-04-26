@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 壓縮器 - My Toolkit</title>
+    <meta name="description" content="本機端 PDF 壓縮工具，可自訂壓縮比例，減少 PDF 檔案大小">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- 共用 CSS -->
+    <link href="common.css" rel="stylesheet">
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- 立即設定主題，避免頁面閃爍 -->
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+
+    <!-- 共用 JavaScript -->
+    <script src="common.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+        :root {
+            /* Light Mode Colors */
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-header: #ffffff;
+            --text-primary: #213448;
+            --text-secondary: #547792;
+            --text-tertiary: #94B4C1;
+            --border-color: #94B4C1;
+            --accent-primary: #547792;
+            --accent-secondary: #94B4C1;
+            --shadow-color: rgba(84, 119, 146, 0.2);
+            --drop-zone-bg: rgba(84, 119, 146, 0.05);
+            --drop-zone-active: rgba(84, 119, 146, 0.15);
+            --card-hover: rgba(148, 180, 193, 0.1);
+        }
+
+        [data-theme="dark"] {
+            /* Dark Mode Colors */
+            --bg-primary: #2a3441;
+            --bg-secondary: #1e2936;
+            --bg-header: #1e2936;
+            --text-primary: #e8eef3;
+            --text-secondary: #94B4C1;
+            --text-tertiary: #7a9aaa;
+            --border-color: #547792;
+            --accent-primary: #94B4C1;
+            --accent-secondary: #547792;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --drop-zone-bg: rgba(148, 180, 193, 0.05);
+            --drop-zone-active: rgba(148, 180, 193, 0.15);
+            --card-hover: rgba(148, 180, 193, 0.1);
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Drop Zone Styles */
+        .drop-zone {
+            background-color: var(--drop-zone-bg);
+            border: 2px dashed var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            background-color: var(--drop-zone-active);
+            border-color: var(--accent-primary);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Slider Styles */
+        .quality-slider {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--border-color);
+            outline: none;
+        }
+
+        .quality-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .quality-slider::-webkit-slider-thumb:hover {
+            background: var(--text-primary);
+        }
+
+        /* Button styles */
+        .btn-primary {
+            background-color: #547792;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #213448;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: var(--card-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            background-color: var(--border-color);
+        }
+
+        .progress-fill {
+            background-color: #547792;
+            transition: width 0.2s ease;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background-color: rgba(234, 179, 8, 0.1);
+            border: 1px solid rgba(234, 179, 8, 0.5);
+            color: #ca8a04;
+        }
+        
+        [data-theme="dark"] .warning-box {
+            color: #facc15;
+        }
+
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm mx-4 mt-4"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color); transition: all 0.3s ease;">
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-compress"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary);">PDF 壓縮器</h1>
+                <p class="text-xs" style="color: var(--text-secondary);">在本機壓縮並減少 PDF 檔案大小</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="themeToggle" onclick="toggleTheme()"
+                class="px-4 py-2 text-sm rounded-lg transition border flex items-center gap-2"
+                style="color: var(--text-primary); background: transparent; border-color: transparent;"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.borderColor='var(--border-color)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.borderColor='transparent'">
+                <i id="themeIcon" class="fas fa-moon"></i>
+                <span id="themeText" class="hidden sm:inline">暗黑模式</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Warning Notice -->
+        <div class="warning-box rounded-xl p-4 mb-6 text-sm flex items-start gap-3">
+            <i class="fas fa-exclamation-triangle mt-1"></i>
+            <div>
+                <strong>壓縮注意事項：</strong> 為達最佳壓縮效果並突破瀏覽器限制，本工具會將 PDF 轉換為圖片格式再重新建立 PDF。
+                <ul class="list-disc list-inside mt-1 ml-1 opacity-90">
+                    <li>PDF 內的<strong>文字將變為圖片，無法再被選取或複製</strong>。</li>
+                    <li>原本的超連結會失效。</li>
+                    <li>最適合用於壓縮「包含大量圖片」的 PDF 或「掃描檔」。</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Left Column: Upload & File Info -->
+            <div class="space-y-6">
+
+                <!-- Upload Zone -->
+                <div id="dropZone" class="drop-zone rounded-xl p-10 text-center cursor-pointer"
+                    onclick="document.getElementById('fileInput').click()">
+                    <div id="emptyState">
+                        <i class="fas fa-cloud-upload-alt text-5xl mb-4" style="color: var(--accent-primary);"></i>
+                        <h3 class="text-lg font-medium mb-2" style="color: var(--text-primary);">拖放 PDF 檔案到這裡</h3>
+                        <p class="text-sm mb-4" style="color: var(--text-secondary);">或點擊選擇檔案</p>
+                        <button type="button" class="btn-secondary px-6 py-2 rounded-lg text-sm inline-flex items-center gap-2">
+                            <i class="fas fa-file-pdf"></i>
+                            選擇 PDF
+                        </button>
+                    </div>
+
+                    <!-- File Selected State (Hidden by default) -->
+                    <div id="fileSelectedState" class="hidden text-left">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3 overflow-hidden">
+                                <i class="fas fa-file-pdf text-4xl" style="color: var(--accent-primary);"></i>
+                                <div class="overflow-hidden">
+                                    <h4 id="fileName" class="font-medium truncate" style="color: var(--text-primary);">filename.pdf</h4>
+                                    <p id="fileSize" class="text-sm" style="color: var(--text-secondary);">0 MB</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="event.stopPropagation(); resetTool();"
+                                class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                title="移除檔案">
+                                <i class="fas fa-times text-lg"></i>
+                            </button>
+                        </div>
+                        <div class="text-xs" style="color: var(--text-tertiary);">
+                            總頁數：<span id="pageCount" class="font-medium">...</span> 頁
+                        </div>
+                    </div>
+                </div>
+
+                <input type="file" id="fileInput" accept="application/pdf" class="hidden" onchange="handleFileSelect(event)">
+
+            </div>
+
+            <!-- Right Column: Settings & Actions -->
+            <div class="space-y-6">
+                <!-- Settings Panel -->
+                <div class="settings-panel rounded-xl p-6">
+                    <h2 class="text-lg font-bold mb-6 flex items-center" style="color: var(--text-primary);">
+                        <i class="fas fa-sliders-h mr-2" style="color: var(--accent-primary);"></i>
+                        壓縮設定
+                    </h2>
+
+                    <!-- Quality Slider -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">
+                            壓縮程度 / 畫質
+                            <span id="qualityValue" class="float-right font-bold" style="color: var(--accent-primary);">60%</span>
+                        </label>
+                        <input type="range" id="qualitySlider" class="quality-slider" min="10" max="100" value="60"
+                            oninput="updateQualityValue(this.value)">
+                        <div class="flex justify-between text-xs mt-2" style="color: var(--text-tertiary);">
+                            <span>檔案最小 (畫質低)</span>
+                            <span>原始畫質 (檔案大)</span>
+                        </div>
+                    </div>
+
+                    <!-- Estimate Size Area -->
+                    <div class="mb-6 p-4 rounded-lg bg-opacity-50" style="background-color: var(--bg-primary);">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium" style="color: var(--text-primary);">預估處理後大小：</span>
+                            <span id="estimatedSize" class="text-lg font-bold" style="color: var(--accent-primary);">---</span>
+                        </div>
+                        <button id="estimateBtn" onclick="estimateFileSize()" disabled
+                            class="btn-secondary w-full py-2 text-sm rounded-lg flex items-center justify-center gap-2 mt-3">
+                            <i class="fas fa-calculator"></i>
+                            預估檔案大小
+                        </button>
+                        <p id="estimateHint" class="text-xs mt-2 text-center hidden" style="color: var(--text-tertiary);">
+                            * 預估值僅供參考，實際大小可能有所不同
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Generate Button -->
+                <button id="generateBtn" onclick="startCompression()" disabled
+                    class="btn-primary w-full py-4 rounded-xl text-lg font-medium flex items-center justify-center gap-2 shadow-sm">
+                    <i class="fas fa-file-export"></i>
+                    開始壓縮
+                </button>
+
+                <!-- Progress Section -->
+                <div id="progressContainer" class="hidden settings-panel rounded-xl p-6">
+                    <h3 id="progressTitle" class="text-sm font-bold mb-3" style="color: var(--text-primary);">處理進度</h3>
+                    <div class="progress-bar rounded-full h-2.5 overflow-hidden mb-2">
+                        <div id="progressFill" class="progress-fill h-full" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span id="progressText" style="color: var(--text-secondary);">準備中...</span>
+                        <span id="progressPercentage" class="font-medium" style="color: var(--accent-primary);">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Usage Instructions (Collapsible) -->
+    <div class="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+        <details class="settings-panel rounded-xl overflow-hidden">
+            <summary class="p-4 cursor-pointer flex items-center gap-2 text-sm font-medium"
+                style="color: var(--text-secondary);">
+                <i class="fas fa-question-circle"></i>
+                使用說明
+            </summary>
+            <div class="px-4 pb-4 text-sm" style="color: var(--text-secondary);">
+                <ol class="list-decimal list-inside space-y-2 mb-4">
+                    <li>點擊或拖放上傳要壓縮的 PDF 檔案。</li>
+                    <li>調整「壓縮程度」滑桿（數值越低，壓縮比率越高，檔案越小但畫質越差）。</li>
+                    <li>點擊「預估檔案大小」可預先了解壓縮後大約的檔案大小。</li>
+                    <li>點擊「開始壓縮」，完成後會自動下載新的 PDF。</li>
+                </ol>
+                <div class="p-3 rounded-lg flex items-start gap-2" style="background-color: var(--drop-zone-bg);">
+                    <i class="fas fa-shield-alt mt-0.5" style="color: var(--accent-primary);"></i>
+                    <span><strong>隱私保障：</strong> 整個 PDF 處理與壓縮過程都在您的瀏覽器本機內進行，不會將您的檔案上傳至任何伺服器。</span>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedFile = null;
+        let pdfDocument = null;
+        let isProcessing = false;
+        const { jsPDF } = window.jspdf;
+
+        // UI Elements
+        const dropZone = document.getElementById('dropZone');
+        const emptyState = document.getElementById('emptyState');
+        const fileSelectedState = document.getElementById('fileSelectedState');
+        const fileNameEl = document.getElementById('fileName');
+        const fileSizeEl = document.getElementById('fileSize');
+        const pageCountEl = document.getElementById('pageCount');
+        const estimateBtn = document.getElementById('estimateBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const qualitySlider = document.getElementById('qualitySlider');
+        const estimatedSizeEl = document.getElementById('estimatedSize');
+        const estimateHint = document.getElementById('estimateHint');
+        
+        // Progress UI
+        const progressContainer = document.getElementById('progressContainer');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressPercentage = document.getElementById('progressPercentage');
+        const progressTitle = document.getElementById('progressTitle');
+
+        // Theme sync
+        function updateThemeButton(theme) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (theme === 'dark') {
+                icon.className = 'fas fa-moon';
+                if(text) text.textContent = '暗黑模式';
+            } else {
+                icon.className = 'fas fa-sun';
+                if(text) text.textContent = '明亮模式';
+            }
+        }
+
+        // Drop Zone Events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            if(!isProcessing) dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if(isProcessing) return;
+            
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                if (file.type === 'application/pdf') {
+                    processFile(file);
+                } else {
+                    alert('請上傳 PDF 檔案');
+                }
+            }
+        });
+
+        function handleFileSelect(event) {
+            if (event.target.files.length > 0) {
+                processFile(event.target.files[0]);
+            }
+            event.target.value = ''; // Reset input
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        async function processFile(file) {
+            selectedFile = file;
+            
+            // UI Update
+            emptyState.classList.add('hidden');
+            fileSelectedState.classList.remove('hidden');
+            dropZone.classList.remove('cursor-pointer');
+            dropZone.onclick = null; // Disable clicking to open dialog once file is selected
+            
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = formatBytes(file.size);
+            pageCountEl.textContent = '讀取中...';
+            
+            estimateBtn.disabled = true;
+            generateBtn.disabled = true;
+            estimatedSizeEl.textContent = '---';
+            estimateHint.classList.add('hidden');
+
+            try {
+                // Read PDF to get page count
+                const arrayBuffer = await file.arrayBuffer();
+                pdfDocument = await pdfjsLib.getDocument(arrayBuffer).promise;
+                
+                pageCountEl.textContent = pdfDocument.numPages;
+                
+                // Enable actions
+                estimateBtn.disabled = false;
+                generateBtn.disabled = false;
+            } catch (error) {
+                console.error('Error loading PDF:', error);
+                alert('讀取 PDF 失敗，檔案可能已損壞。');
+                resetTool();
+            }
+        }
+
+        function resetTool() {
+            if(isProcessing) return;
+            selectedFile = null;
+            pdfDocument = null;
+            
+            emptyState.classList.remove('hidden');
+            fileSelectedState.classList.add('hidden');
+            dropZone.classList.add('cursor-pointer');
+            dropZone.onclick = () => document.getElementById('fileInput').click();
+            
+            estimateBtn.disabled = true;
+            generateBtn.disabled = true;
+            estimatedSizeEl.textContent = '---';
+            estimateHint.classList.add('hidden');
+            progressContainer.classList.add('hidden');
+        }
+
+        function updateQualityValue(value) {
+            document.getElementById('qualityValue').textContent = value + '%';
+            // Reset estimate if quality changed
+            if (selectedFile) {
+                estimatedSizeEl.textContent = '---';
+                estimateHint.classList.add('hidden');
+            }
+        }
+
+        // Helper to convert PDF page to image data URL
+        async function renderPageToImage(pageNumber, quality) {
+            const page = await pdfDocument.getPage(pageNumber);
+            // Use scale 1.5 to balance between quality and performance/size. 
+            // Standard scale 1.0 is 72 DPI. 1.5 is 108 DPI. 
+            // If they want better quality they can increase the slider which we map to JPEG quality.
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            // Fill white background (PDFs are transparent by default)
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+
+            await page.render(renderContext).promise;
+            
+            // Map 10-100 to 0.1-1.0
+            const jpegQuality = Math.max(0.1, parseInt(quality) / 100);
+            return canvas.toDataURL('image/jpeg', jpegQuality);
+        }
+
+        function getDataUrlBytesSize(dataUrl) {
+            // Rough estimation of base64 size
+            const base64Str = dataUrl.split(',')[1];
+            if (!base64Str) return 0;
+            const decodedLen = atob(base64Str).length;
+            return decodedLen;
+        }
+
+        async function estimateFileSize() {
+            if (!pdfDocument) return;
+            
+            estimateBtn.disabled = true;
+            const originalIcon = estimateBtn.innerHTML;
+            estimateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 估算中...';
+            
+            try {
+                const quality = qualitySlider.value;
+                const totalPages = pdfDocument.numPages;
+                
+                // Pick pages to sample (first, middle, last) to get a good average
+                const pagesToSample = [];
+                pagesToSample.push(1);
+                if (totalPages > 1) {
+                    pagesToSample.push(Math.max(2, Math.floor(totalPages / 2)));
+                }
+                if (totalPages > 2) {
+                    pagesToSample.push(totalPages);
+                }
+                
+                // Keep unique
+                const uniquePagesToSample = [...new Set(pagesToSample)];
+                
+                let totalSampledSize = 0;
+                
+                for (let pageNum of uniquePagesToSample) {
+                    const dataUrl = await renderPageToImage(pageNum, quality);
+                    totalSampledSize += getDataUrlBytesSize(dataUrl);
+                }
+                
+                const avgPageSize = totalSampledSize / uniquePagesToSample.length;
+                
+                // JS PDF overhead estimation (very minimal, mostly just image bytes)
+                const estimatedTotalBytes = (avgPageSize * totalPages) * 1.05; // Add 5% overhead
+                
+                estimatedSizeEl.textContent = formatBytes(estimatedTotalBytes);
+                
+                // Color code the estimate based on comparison to original
+                if (estimatedTotalBytes > selectedFile.size) {
+                    estimatedSizeEl.className = 'text-lg font-bold text-red-500';
+                } else if (estimatedTotalBytes < selectedFile.size * 0.5) {
+                    estimatedSizeEl.className = 'text-lg font-bold text-green-500';
+                } else {
+                    estimatedSizeEl.className = 'text-lg font-bold text-orange-500';
+                }
+                
+                estimateHint.classList.remove('hidden');
+                
+            } catch (error) {
+                console.error("Estimation failed:", error);
+                alert("估算失敗，請直接進行壓縮。");
+            } finally {
+                estimateBtn.disabled = false;
+                estimateBtn.innerHTML = originalIcon;
+            }
+        }
+
+        async function startCompression() {
+            if (!pdfDocument || isProcessing) return;
+            
+            isProcessing = true;
+            generateBtn.disabled = true;
+            estimateBtn.disabled = true;
+            document.getElementById('fileInput').disabled = true;
+            qualitySlider.disabled = true;
+            
+            progressContainer.classList.remove('hidden');
+            progressTitle.textContent = '處理進度';
+            
+            const quality = qualitySlider.value;
+            const totalPages = pdfDocument.numPages;
+            
+            try {
+                // Get first page's ORIGINAL dimensions (scale 1.0 = PDF points at 72 DPI)
+                const firstPage = await pdfDocument.getPage(1);
+                const firstOriginalVp = firstPage.getViewport({ scale: 1.0 });
+                const firstOrientation = firstOriginalVp.width > firstOriginalVp.height ? 'landscape' : 'portrait';
+
+                // Initialize jsPDF with 'pt' (points) matching PDF.js scale 1.0 coordinate system
+                const newPdf = new jsPDF({
+                    orientation: firstOrientation,
+                    unit: 'pt',
+                    format: [firstOriginalVp.width, firstOriginalVp.height],
+                    compress: true
+                });
+                
+                for (let i = 1; i <= totalPages; i++) {
+                    // Update progress UI
+                    const percentage = Math.round(((i - 1) / totalPages) * 100);
+                    progressFill.style.width = percentage + '%';
+                    progressPercentage.textContent = percentage + '%';
+                    progressText.textContent = `正在處理第 ${i} / ${totalPages} 頁...`;
+                    
+                    // Allow UI to update
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                    
+                    const page = await pdfDocument.getPage(i);
+                    // Original dimensions (scale 1.0) for page sizing
+                    const originalVp = page.getViewport({ scale: 1.0 });
+                    
+                    // Render at higher resolution for image quality
+                    const dataUrl = await renderPageToImage(i, quality);
+                    
+                    // Determine page orientation
+                    const orientation = originalVp.width > originalVp.height ? 'landscape' : 'portrait';
+                    
+                    // First page already created; add new page for subsequent ones
+                    if (i > 1) {
+                        newPdf.addPage([originalVp.width, originalVp.height], orientation);
+                    }
+                    
+                    // Place image using original dimensions so it fills the correctly-sized page
+                    newPdf.addImage(dataUrl, 'JPEG', 0, 0, originalVp.width, originalVp.height);
+                }
+                
+                // Finalizing progress
+                progressFill.style.width = '100%';
+                progressPercentage.textContent = '100%';
+                progressText.textContent = '正在匯出 PDF...';
+                
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Save the PDF
+                const originalName = selectedFile.name;
+                const newName = originalName.replace('.pdf', `_compressed_${quality}q.pdf`);
+                newPdf.save(newName);
+                
+                progressTitle.textContent = '處理完成！';
+                progressText.textContent = '檔案已成功下載。';
+                
+            } catch (error) {
+                console.error("Compression failed:", error);
+                alert("壓縮過程中發生錯誤！");
+                progressTitle.textContent = '處理失敗';
+                progressText.textContent = '請重新整理頁面後再試。';
+                progressFill.style.backgroundColor = '#ef4444'; // red-500
+            } finally {
+                isProcessing = false;
+                generateBtn.disabled = false;
+                estimateBtn.disabled = false;
+                document.getElementById('fileInput').disabled = false;
+                qualitySlider.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
