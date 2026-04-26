@@ -35,6 +35,10 @@
 - **[Folder Path to Name](pathToName.html)**
   - 將路徑轉換為資料夾名稱，適合備份命名使用。
 
+- **[PDF 壓縮器](compressPdf.html)**
+  - 在本機端壓縮 PDF 檔案，減少檔案大小。
+  - 支援自訂壓縮比例，特別適合處理包含大量圖片的掃描檔。
+
 ## 🔒 隱私與安全
 
 本專案最核心的設計原則是 **「本機優先 (Local-First)」**：
@@ -50,7 +54,7 @@
 - **Libraries**:
   - Tesseract.js (OCR)
   - SparkMD5 (Hash)
-  - jsPDF (PDF Generation)
+  - jsPDF & pdf.js (PDF Generation & Processing)
   - Diff.js (Diffing)
 
 ## 🚀 如何使用
