@@ -52,7 +52,11 @@
 ```
 MyToolkit/
 ├── index.html              # 首頁
-├── common.css              # 共用 CSS 樣式
+├── assets/
+│   ├── css/
+│   │   └── common.css      # 共用 CSS 樣式
+│   └── js/
+│       └── common.js       # 共用 JavaScript
 ├── tableToMarkdown.html    # Markdown 表格生成器
 ├── jsonFormatter.html      # JSON 格式化工具
 ├── diffCompare.html        # 文字差異比較工具
@@ -62,9 +66,9 @@ MyToolkit/
     └── color_platte.md     # 色彩調色盤
 ```
 
-### 共用樣式 (common.css)
+### 共用樣式 (assets/css/common.css)
 
-所有工具頁面應引用 `common.css`，其中包含：
+所有工具頁面應引用 `assets/css/common.css`，其中包含：
 
 - **Google Fonts** - Noto Sans TC 字體
 - **CSS 變數系統** - 淺色/暗色模式變數
@@ -73,7 +77,7 @@ MyToolkit/
 
 ```html
 <!-- 引入共用樣式 -->
-<link href="common.css" rel="stylesheet">
+<link href="assets/css/common.css" rel="stylesheet">
 ```
 
 ---
@@ -113,7 +117,7 @@ tailwind.config = {
 使用 CSS 變數實現明暗主題切換。**所有顏色應使用變數而非硬編碼**。
 
 > [!NOTE]
-> 共用變數定義在 `common.css` 中。各工具若需特定變數，可在頁面內額外定義。
+> 共用變數定義在 `assets/css/common.css` 中。各工具若需特定變數，可在頁面內額外定義。
 
 #### 淺色模式 (Light Mode)
 
@@ -552,7 +556,7 @@ table.editor-table tbody tr:hover td {
 
 ### 共用 JavaScript 檔案
 
-所有頁面使用 `common.js` 共用主題切換邏輯：
+所有頁面使用 `assets/js/common.js` 共用主題切換邏輯：
 
 ```javascript
 // 切換主題
@@ -620,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <!-- 共用 JavaScript -->
-<script src="common.js"></script>
+<script src="assets/js/common.js"></script>
 ```
 
 **為什麼需要這個阻塞腳本？**
@@ -774,7 +778,7 @@ body {
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- 共用樣式 -->
-    <link href="common.css" rel="stylesheet">
+    <link href="assets/css/common.css" rel="stylesheet">
     
     <style>
         /* 此工具專用的 CSS 變數或樣式 */
@@ -877,13 +881,13 @@ body {
 在建立新頁面時，請確認以下項目：
 
 ### 色彩
-- [ ] 引入 `common.css` 共用樣式
+- [ ] 引入 `assets/css/common.css` 共用樣式
 - [ ] 使用 CSS 變數而非硬編碼顏色
 - [ ] 如需特定變數，在頁面內額外定義淺色與暗色模式
 - [ ] 所有顏色變化都有 `transition` 過渡效果
 
 ### 字體
-- [ ] 使用 Noto Sans TC 字體（已在 common.css 中引入）
+- [ ] 使用 Noto Sans TC 字體（已在 assets/css/common.css 中引入）
 - [ ] 使用正確的字重（300/400/500/700）
 - [ ] 程式碼區塊使用等寬字體
 
@@ -931,6 +935,7 @@ body {
 | 1.0 | 2026-01-05 | 初版發布，基於 index.html 與 tableToMarkdown.html 分析 |
 | 1.1 | 2026-01-08 | 新增 common.css 共用樣式檔案說明 |
 | 1.2 | 2026-01-09 | 整理文檔結構，優化目錄導航，新增專案架構說明 |
+| 1.3 | 2026-07-29 | 將共用 CSS 與 JavaScript 分類至 assets 目錄，維持所有頁面路徑不變 |
 
 ---
 
