@@ -382,13 +382,11 @@ body {
     
     <!-- 卡片內容 -->
     <div class="p-6">
-        <div class="flex items-start justify-between mb-4">
+        <div class="mb-4">
             <!-- 圖示 -->
             <div class="w-12 h-12 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-table"></i>
             </div>
-            <!-- 狀態標籤 -->
-            <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">已上線</span>
         </div>
         <h3 class="text-lg font-bold mb-2">Markdown 表格生成器</h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
