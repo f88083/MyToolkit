@@ -941,3 +941,14 @@ body {
 
 **維護者：** Simon Lai  
 **最後更新：** 2026-01-09
+
+---
+
+## AI Resources 頁面
+
+- 頁面檔案為 `aiResources.html`，資源資料集中於 `data/ai-resources.md`。
+- 前端以 `fetch()` 讀取 Markdown；每筆資源使用 `## 名稱`、`URL`、`Type`、`Tags`、`Summary` 欄位。
+- `Type` 為固定的單選分類：`Skill`、`Agent`、`Framework`。
+- `Tags` 為固定用途分類：`Development`、`Productivity`、`Browser`、`Automation`；可多選，且與 Type 篩選採 AND 邏輯。
+- 搜尋框即時比對名稱、簡介、Type 與 Tags；篩選按鈕與清除按鈕沿用 `rounded-lg`、共用色彩變數及既有按鈕互動規則。
+- 資源卡片沿用工具卡的圓角、陰影與 hover 位移效果；卡片內的「前往」按鈕在新分頁開啟來源連結。

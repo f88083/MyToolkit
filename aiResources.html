@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resources - My Toolkit</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'custom-dark': '#213448',
+                        'custom-medium': '#547792',
+                        'custom-light': '#94B4C1',
+                        'custom-beige': '#EAE0CF',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/common.css" rel="stylesheet">
+
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+    <script src="assets/js/common.js"></script>
+
+    <style>
+        .resource-card {
+            transition: all 0.3s ease;
+            background-color: var(--card-bg, var(--bg-secondary));
+            border-color: var(--card-border, var(--border-color));
+        }
+
+        .resource-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px var(--shadow-color);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+    <header class="flex justify-between items-center max-w-6xl mx-auto mt-4 w-[calc(100%-2rem)] p-4 rounded-xl shadow-sm"
+        style="background-color: var(--bg-header); border: 1px solid var(--border-color);">
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all"
+                style="color: var(--text-secondary);"
+                onmouseover="this.style.backgroundColor='rgba(148, 180, 193, 0.15)'; this.style.color='var(--accent-primary)'"
+                onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--text-secondary)'"
+                title="返回首頁">
+                <i class="fas fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">首頁</span>
+            </a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold" style="color: var(--text-primary);">AI Resources</h1>
+                <p class="text-xs" style="color: var(--text-secondary);">AI Skill、Agent 與 Framework</p>
+            </div>
+        </div>
+        <button id="themeToggle" onclick="toggleTheme()" class="btn-secondary" aria-label="切換深淺主題">
+            <i id="themeIcon" class="fas fa-moon"></i>
+            <span id="themeText" class="hidden sm:inline">深色主題</span>
+        </button>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+        <section class="mb-8">
+            <h2 class="text-3xl sm:text-4xl font-extrabold mb-3" style="color: var(--text-primary);">快速找到下一個好工具</h2>
+            <p class="max-w-2xl leading-relaxed" style="color: var(--text-secondary);">搜尋名稱、簡介、類型或標籤，並以類型和用途快速縮小範圍。</p>
+        </section>
+
+        <section class="rounded-xl shadow-sm p-5 sm:p-6 mb-8"
+            style="background-color: var(--bg-secondary); border: 1px solid var(--border-color);">
+            <label for="searchInput" class="block text-sm font-semibold mb-2" style="color: var(--text-primary);">搜尋資源</label>
+            <div class="relative mb-6">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2" style="color: var(--text-tertiary);"></i>
+                <input id="searchInput" type="search" autocomplete="off" placeholder="搜尋名稱、簡介或標籤..."
+                    class="w-full rounded-lg py-3 pl-11 pr-4 focus:outline-none focus:ring-2"
+                    style="background-color: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); --tw-ring-color: var(--accent-primary);">
+            </div>
+
+            <div class="space-y-5">
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <h3 class="font-semibold" style="color: var(--text-primary);">類型</h3>
+                        <button id="clearTypeButton" type="button" class="hidden text-sm px-2 py-1 rounded-lg transition"
+                            style="color: var(--accent-primary);">清除類型</button>
+                    </div>
+                    <div id="typeFilters" class="flex flex-wrap gap-2" aria-label="依類型篩選"></div>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                        <h3 class="font-semibold" style="color: var(--text-primary);">用途</h3>
+                        <button id="clearPurposeButton" type="button" class="hidden text-sm px-2 py-1 rounded-lg transition"
+                            style="color: var(--accent-primary);">清除用途</button>
+                    </div>
+                    <div id="purposeFilters" class="flex flex-wrap gap-2" aria-label="依用途篩選"></div>
+                </div>
+            </div>
+        </section>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <p id="resultCount" class="text-sm" style="color: var(--text-secondary);" aria-live="polite">正在載入資源...</p>
+            <button id="clearFiltersButton" type="button" class="hidden btn-secondary">清除所有篩選</button>
+        </div>
+
+        <div id="resourceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-live="polite"></div>
+    </main>
+
+    <footer class="py-8" style="background-color: var(--bg-header); border-top: 1px solid var(--border-color);">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm" style="color: var(--text-secondary);">
+            <p>&copy; 2026 My Toolkit. Hosted on GitHub Pages.</p>
+        </div>
+    </footer>
+
+    <script>
+        const TAXONOMY = {
+            types: ['Skill', 'Agent', 'Framework'],
+            purposes: ['Development', 'Productivity', 'Browser', 'Automation']
+        };
+
+        const state = {
+            resources: [],
+            query: '',
+            type: '',
+            purposes: new Set()
+        };
+
+        const resourceGrid = document.getElementById('resourceGrid');
+        const resultCount = document.getElementById('resultCount');
+        const searchInput = document.getElementById('searchInput');
+        const clearFiltersButton = document.getElementById('clearFiltersButton');
+        const clearTypeButton = document.getElementById('clearTypeButton');
+        const clearPurposeButton = document.getElementById('clearPurposeButton');
+
+        function getField(section, fieldName) {
+            const match = section.match(new RegExp(`^-\\s*${fieldName}:\\s*(.+)$`, 'im'));
+            return match ? match[1].trim() : '';
+        }
+
+        function parseResources(markdown) {
+            const sections = markdown.replace(/<!--[\s\S]*?-->/g, '').split(/^##\s+(.+)$/m);
+            const resources = [];
+
+            for (let index = 1; index < sections.length; index += 2) {
+                const title = sections[index].trim();
+                const section = sections[index + 1] || '';
+                const url = getField(section, 'URL');
+                const type = getField(section, 'Type');
+                const tags = getField(section, 'Tags').split(',').map(tag => tag.trim()).filter(Boolean);
+                const summary = getField(section, 'Summary');
+
+                if (title && url && summary && TAXONOMY.types.includes(type)) {
+                    resources.push({
+                        title,
+                        url,
+                        type,
+                        tags: tags.filter(tag => TAXONOMY.purposes.includes(tag)),
+                        summary
+                    });
+                }
+            }
+
+            return resources;
+        }
+
+        function getFilteredResources() {
+            const query = state.query.trim().toLocaleLowerCase();
+
+            return state.resources.filter(resource => {
+                const searchableText = [resource.title, resource.summary, resource.type, ...resource.tags]
+                    .join(' ')
+                    .toLocaleLowerCase();
+                const matchesSearch = !query || searchableText.includes(query);
+                const matchesType = !state.type || resource.type === state.type;
+                const matchesPurposes = [...state.purposes].every(purpose => resource.tags.includes(purpose));
+
+                return matchesSearch && matchesType && matchesPurposes;
+            });
+        }
+
+        function createFilterButton(label, selected, clickHandler) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'rounded-lg px-3 py-2 text-sm font-medium transition';
+            button.textContent = label;
+            button.setAttribute('aria-pressed', String(selected));
+            button.style.border = '1px solid var(--border-color)';
+            button.style.backgroundColor = selected ? 'var(--accent-primary)' : 'var(--bg-primary)';
+            button.style.color = selected ? '#ffffff' : 'var(--text-secondary)';
+            button.addEventListener('click', clickHandler);
+            return button;
+        }
+
+        function renderFilters() {
+            const typeFilters = document.getElementById('typeFilters');
+            const purposeFilters = document.getElementById('purposeFilters');
+
+            typeFilters.replaceChildren(...TAXONOMY.types.map(type => createFilterButton(type, state.type === type, () => {
+                state.type = state.type === type ? '' : type;
+                render();
+            })));
+
+            purposeFilters.replaceChildren(...TAXONOMY.purposes.map(purpose => createFilterButton(purpose, state.purposes.has(purpose), () => {
+                state.purposes.has(purpose) ? state.purposes.delete(purpose) : state.purposes.add(purpose);
+                render();
+            })));
+        }
+
+        function createResourceCard(resource) {
+            const card = document.createElement('article');
+            card.className = 'resource-card rounded-xl overflow-hidden shadow-sm flex flex-col';
+
+            const accent = document.createElement('div');
+            accent.className = 'h-2 bg-custom-medium';
+
+            const content = document.createElement('div');
+            content.className = 'p-6 flex flex-col flex-grow';
+
+            const type = document.createElement('span');
+            type.className = 'w-fit text-xs px-2 py-1 rounded-lg font-medium mb-4';
+            type.style.backgroundColor = 'var(--accent-beige, #EAE0CF)';
+            type.style.color = 'var(--text-primary)';
+            type.textContent = resource.type;
+
+            const title = document.createElement('h3');
+            title.className = 'text-lg font-bold mb-2';
+            title.style.color = 'var(--text-primary)';
+            title.textContent = resource.title;
+
+            const summary = document.createElement('p');
+            summary.className = 'text-sm leading-relaxed mb-5 flex-grow';
+            summary.style.color = 'var(--text-secondary)';
+            summary.textContent = resource.summary;
+
+            const tags = document.createElement('div');
+            tags.className = 'flex flex-wrap gap-2 mb-6';
+            resource.tags.forEach(tag => {
+                const badge = document.createElement('span');
+                badge.className = 'text-xs px-2 py-1 rounded-lg font-medium';
+                badge.style.backgroundColor = 'var(--bg-tertiary)';
+                badge.style.color = 'var(--text-secondary)';
+                badge.textContent = tag;
+                tags.append(badge);
+            });
+
+            const link = document.createElement('a');
+            link.href = resource.url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = 'px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition flex items-center justify-center gap-2';
+            link.innerHTML = '<span>前往</span><i class="fas fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>';
+
+            content.append(type, title, summary, tags, link);
+            card.append(accent, content);
+            return card;
+        }
+
+        function renderCards(resources) {
+            if (!resources.length) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'col-span-full rounded-xl shadow-sm p-8 text-center';
+                emptyState.style.backgroundColor = 'var(--bg-secondary)';
+                emptyState.style.border = '1px solid var(--border-color)';
+                emptyState.innerHTML = '<i class="fas fa-filter text-3xl mb-4" style="color: var(--text-tertiary);"></i><h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">找不到符合的資源</h3><p class="mb-5" style="color: var(--text-secondary);">調整搜尋文字或清除篩選條件後再試一次。</p>';
+                const clearButton = document.createElement('button');
+                clearButton.type = 'button';
+                clearButton.className = 'px-4 py-2 text-sm bg-custom-medium hover:bg-custom-dark text-white rounded-lg shadow transition';
+                clearButton.textContent = '清除篩選';
+                clearButton.addEventListener('click', clearFilters);
+                emptyState.append(clearButton);
+                resourceGrid.replaceChildren(emptyState);
+                return;
+            }
+
+            resourceGrid.replaceChildren(...resources.map(createResourceCard));
+        }
+
+        function updateFilterControls() {
+            const hasFilters = Boolean(state.query || state.type || state.purposes.size);
+            clearFiltersButton.classList.toggle('hidden', !hasFilters);
+            clearTypeButton.classList.toggle('hidden', !state.type);
+            clearPurposeButton.classList.toggle('hidden', state.purposes.size === 0);
+        }
+
+        function render() {
+            const resources = getFilteredResources();
+            renderFilters();
+            renderCards(resources);
+            resultCount.textContent = `顯示 ${resources.length} / ${state.resources.length} 項資源`;
+            updateFilterControls();
+        }
+
+        function clearFilters() {
+            state.query = '';
+            state.type = '';
+            state.purposes.clear();
+            searchInput.value = '';
+            render();
+        }
+
+        searchInput.addEventListener('input', event => {
+            state.query = event.target.value;
+            render();
+        });
+        clearFiltersButton.addEventListener('click', clearFilters);
+        clearTypeButton.addEventListener('click', () => {
+            state.type = '';
+            render();
+        });
+        clearPurposeButton.addEventListener('click', () => {
+            state.purposes.clear();
+            render();
+        });
+
+        async function loadResources() {
+            try {
+                const response = await fetch('data/ai-resources.md');
+                if (!response.ok) throw new Error(`Unable to load resource data: ${response.status}`);
+                state.resources = parseResources(await response.text());
+                render();
+            } catch (error) {
+                resultCount.textContent = '無法載入資源清單';
+                resourceGrid.innerHTML = '<div class="col-span-full rounded-xl shadow-sm p-8 text-center" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);"><i class="fas fa-triangle-exclamation text-2xl mb-3" style="color: var(--accent-primary);"></i><p>讀取 data/ai-resources.md 時發生問題，請稍後再試。</p></div>';
+                console.error(error);
+            }
+        }
+
+        loadResources();
+    </script>
+</body>
+
+</html>
