@@ -140,6 +140,8 @@ tailwind.config = {
     --border-color: #94B4C1;      /* 邊框顏色 */
     --accent-primary: #547792;    /* 主要強調色 */
     --accent-secondary: #94B4C1;  /* 次要強調色 */
+    --badge-bg: #EAE0CF;          /* 標籤背景 */
+    --badge-text: #213448;        /* 標籤文字 */
     --accent-beige: #EAE0CF;      /* 米白強調色 */
     
     /* 卡片樣式（僅 index.html） */
@@ -182,6 +184,8 @@ tailwind.config = {
     --border-color: #547792;
     --accent-primary: #94B4C1;
     --accent-secondary: #547792;
+    --badge-bg: #94B4C1;          /* 標籤背景 */
+    --badge-text: #1e2936;        /* 標籤文字 */
     --accent-beige: #d4dce4;
     
     /* 卡片樣式 */

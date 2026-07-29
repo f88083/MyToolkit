@@ -25,6 +25,8 @@
     --border-color: #94B4C1;
     --accent-primary: #547792;
     --accent-secondary: #94B4C1;
+    --badge-bg: #EAE0CF;
+    --badge-text: #213448;
     
     /* 陰影 */
     --shadow-color: rgba(84, 119, 146, 0.2);
@@ -49,6 +51,8 @@
     --border-color: #547792;
     --accent-primary: #94B4C1;
     --accent-secondary: #547792;
+    --badge-bg: #94B4C1;
+    --badge-text: #1e2936;
     
     /* 陰影 */
     --shadow-color: rgba(0, 0, 0, 0.3);
