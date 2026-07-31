@@ -32,3 +32,10 @@
 - Type: Framework
 - Tags: Browser, Automation
 - Summary: 讓程式代理以可重跑的 Python 與 Playwright 腳本完成長流程瀏覽器任務的輕量框架。
+
+## OpenWiki
+
+- URL: https://github.com/langchain-ai/openwiki
+- Type: Framework
+- Tags: Productivity
+- Summary: writes and maintains agent wikis for codebases or purpose memory. It's built specifically for agents, can ingest local knowledge sources through built-in connectors or git repositories and synthesize them into a local wiki.
