@@ -61,6 +61,7 @@ MyToolkit/
 ├── jsonFormatter.html      # JSON 格式化工具
 ├── diffCompare.html        # 文字差異比較工具
 ├── hashCompare.html        # Hash 比較工具
+├── pdfToPpt.html           # PDF 轉 PowerPoint 工具
 └── doc/
     ├── design_guide.md     # 設計指導文件（本文件）
     └── color_platte.md     # 色彩調色盤
@@ -938,11 +939,12 @@ body {
 | 1.1 | 2026-01-08 | 新增 common.css 共用樣式檔案說明 |
 | 1.2 | 2026-01-09 | 整理文檔結構，優化目錄導航，新增專案架構說明 |
 | 1.3 | 2026-07-29 | 將共用 CSS 與 JavaScript 分類至 assets 目錄，維持所有頁面路徑不變 |
+| 1.4 | 2026-08-13 | 新增 PDF to PowerPoint 工具規格與首頁入口 |
 
 ---
 
 **維護者：** Simon Lai  
-**最後更新：** 2026-01-09
+**最後更新：** 2026-08-13
 
 ---
 
@@ -954,3 +956,14 @@ body {
 - `Tags` 為固定用途分類：`Development`、`Productivity`、`Browser`、`Automation`；可多選，且與 Type 篩選採 AND 邏輯。
 - 搜尋框即時比對名稱、簡介、Type 與 Tags；篩選按鈕與清除按鈕沿用 `rounded-lg`、共用色彩變數及既有按鈕互動規則。
 - 資源卡片沿用工具卡的圓角、陰影與 hover 位移效果；卡片內的「前往」按鈕在新分頁開啟來源連結。
+
+---
+
+## PDF to PowerPoint 頁面
+
+- 頁面檔案為 `pdfToPpt.html`，使用 PDF.js 在瀏覽器逐頁渲染 PDF，再由 PptxGenJS 產生 `.pptx`。
+- 每一頁 PDF 對應一張投影片，頁面以圖片形式置入；保留原始視覺版面，但投影片內文字、表格與圖形不可個別編輯。
+- 支援小檔案、標準及高品質三種渲染品質，並支援依 PDF 第一頁、16:9、4:3 三種投影片比例。
+- 頁面採左側上傳與預覽、右側設定與進度的響應式配置；手機版改為單欄。
+- 大型 PDF 必須逐頁處理並釋放 Canvas，不可將所有高解析頁面同時保留在記憶體。
+- PDF 與產生的投影片資料完全在用戶瀏覽器內處理，不得上傳至伺服器。

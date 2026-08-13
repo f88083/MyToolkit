@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to PowerPoint - My Toolkit</title>
+    <meta name="description" content="在瀏覽器本機將 PDF 每一頁轉換為 PowerPoint 投影片">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config={theme:{extend:{colors:{'custom-dark':'#213448','custom-medium':'#547792','custom-light':'#94B4C1','custom-beige':'#EAE0CF'}}}};
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="assets/css/common.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+    <script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@4.0.1/dist/pptxgen.bundle.js"></script>
+    <script>(function(){document.documentElement.setAttribute('data-theme',localStorage.getItem('theme')||'light');})();</script>
+    <script src="assets/js/common.js"></script>
+    <style>
+        :root{--panel-bg:#f8f9fa;--drop-bg:rgba(84,119,146,.05);--drop-active:rgba(84,119,146,.15);--success:#15803d;--danger:#b91c1c;--warning-bg:rgba(234,180,8,.12);--warning-border:#ca8a04;--slide-bg:#fff}
+        [data-theme="dark"]{--panel-bg:#1e2936;--drop-bg:rgba(148,180,193,.05);--drop-active:rgba(148,180,193,.15);--success:#86efac;--danger:#fca5a5;--warning-bg:rgba(234,179,8,.1);--warning-border:#eab308}
+        .drop-zone{background:var(--drop-bg);border:2px dashed var(--border-color);transition:all .3s ease}
+        .drop-zone:hover,.drop-zone.drag-over{background:var(--drop-active);border-color:var(--accent-primary)}
+        .header-back:hover{background:var(--drop-active);color:var(--accent-primary)!important}
+        .panel,.page-card{background:var(--panel-bg);border:1px solid var(--border-color)}
+        .page-card{transition:transform .2s ease,box-shadow .2s ease}
+        .page-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px var(--shadow-color)}
+        .page-preview{background:var(--slide-bg);object-fit:contain}
+        .custom-select{background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);transition:all .2s ease}
+        .custom-select:focus{border-color:var(--accent-primary);box-shadow:0 0 0 2px var(--drop-active);outline:none}
+        .btn-primary{background:var(--accent-primary);color:var(--bg-primary);transition:all .2s ease}
+        [data-theme="dark"] .btn-primary{color:var(--bg-header)}
+        .btn-primary:hover:not(:disabled){filter:brightness(.85)}
+        .btn-primary:disabled{cursor:not-allowed;opacity:.5}
+        .progress-track{background:var(--border-color)}.progress-fill{background:var(--accent-primary);transition:width .3s ease}
+        .warning-box{background:var(--warning-bg);border:1px solid var(--warning-border)}
+        .status-success{color:var(--success)}.status-error{color:var(--danger)}
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <header class="flex justify-between items-center p-4 rounded-xl shadow-sm mx-4 mt-4" style="background:var(--bg-header);border:1px solid var(--border-color);transition:all .3s ease">
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="index.html" class="header-back text-sm flex items-center gap-1 px-2 py-1 rounded-lg transition-all shrink-0" style="color:var(--text-secondary)" title="返回首頁"><i class="fas fa-arrow-left text-xs"></i><span class="hidden sm:inline">首頁</span></a>
+            <div class="w-10 h-10 bg-custom-medium rounded-lg flex items-center justify-center text-white text-xl shrink-0"><i class="fas fa-file-powerpoint"></i></div>
+            <div class="min-w-0"><h1 class="text-xl font-bold truncate" style="color:var(--text-primary)">PDF to PowerPoint</h1><p class="text-xs truncate" style="color:var(--text-secondary)">每一頁轉成一張高畫質投影片</p></div>
+        </div>
+        <button id="themeToggle" onclick="toggleTheme()" class="btn-secondary shrink-0"><i id="themeIcon" class="fas fa-moon"></i><span id="themeText" class="hidden sm:inline">暗黑模式</span></button>
+    </header>
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <section class="lg:col-span-2 space-y-6" aria-labelledby="uploadTitle">
+                <div id="dropZone" class="drop-zone rounded-xl p-8 sm:p-10 text-center cursor-pointer" role="button" tabindex="0" aria-controls="fileInput">
+                    <div id="emptyState">
+                        <i class="fas fa-cloud-arrow-up text-5xl mb-4" style="color:var(--accent-primary)"></i>
+                        <h2 id="uploadTitle" class="text-lg font-medium mb-2" style="color:var(--text-primary)">拖放 PDF 到這裡</h2>
+                        <p class="text-sm mb-4" style="color:var(--text-secondary)">或點擊選擇一個 PDF 檔案</p>
+                        <button type="button" class="btn-secondary mx-auto" onclick="event.stopPropagation();openFilePicker()"><i class="fas fa-file-pdf"></i>選擇 PDF</button>
+                        <p class="text-xs mt-4" style="color:var(--text-tertiary)">檔案只會在此瀏覽器中處理，不會上傳</p>
+                    </div>
+                    <div id="fileState" class="hidden">
+                        <i class="fas fa-file-circle-check text-5xl mb-4" style="color:var(--accent-primary)"></i>
+                        <h2 id="fileName" class="text-lg font-bold break-all" style="color:var(--text-primary)"></h2>
+                        <p id="fileMeta" class="text-sm mt-2" style="color:var(--text-secondary)"></p>
+                        <button type="button" class="btn-secondary mx-auto mt-4" onclick="event.stopPropagation();openFilePicker()"><i class="fas fa-rotate"></i>更換檔案</button>
+                    </div>
+                </div>
+                <input id="fileInput" type="file" accept="application/pdf,.pdf" class="hidden">
+                <div id="warningBox" class="warning-box hidden rounded-xl p-4 text-sm" role="alert" style="color:var(--text-primary)"><i class="fas fa-triangle-exclamation mr-2"></i><span id="warningText"></span></div>
+                <section id="previewSection" class="hidden" aria-labelledby="previewTitle">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h2 id="previewTitle" class="text-lg font-bold" style="color:var(--text-primary)"><i class="fas fa-border-all mr-2" style="color:var(--accent-primary)"></i>頁面預覽</h2>
+                        <span id="previewNote" class="text-xs" style="color:var(--text-tertiary)"></span>
+                    </div>
+                    <div id="previewGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+                </section>
+            </section>
+            <aside class="space-y-6" aria-label="轉換設定">
+                <div class="panel rounded-xl p-6">
+                    <h2 class="text-lg font-bold mb-6" style="color:var(--text-primary)"><i class="fas fa-sliders mr-2" style="color:var(--accent-primary)"></i>輸出設定</h2>
+                    <label for="quality" class="block text-sm font-medium mb-2" style="color:var(--text-primary)">畫面品質</label>
+                    <select id="quality" class="custom-select w-full px-3 py-2 rounded-lg mb-2">
+                        <option value="compact">小檔案（JPEG，108 DPI）</option><option value="standard" selected>標準（JPEG，150 DPI）</option><option value="high">高品質（PNG，216 DPI）</option>
+                    </select>
+                    <p class="text-xs mb-6" style="color:var(--text-tertiary)">高品質模式會明顯增加處理時間與檔案大小。</p>
+                    <label for="slideSize" class="block text-sm font-medium mb-2" style="color:var(--text-primary)">投影片比例</label>
+                    <select id="slideSize" class="custom-select w-full px-3 py-2 rounded-lg mb-2">
+                        <option value="auto" selected>依 PDF 第一頁</option><option value="wide">16:9 寬螢幕</option><option value="standard">4:3 標準</option>
+                    </select>
+                    <p class="text-xs" style="color:var(--text-tertiary)">不同尺寸的頁面會等比例置中，空白處保留白色。</p>
+                </div>
+                <div class="panel rounded-xl p-4 text-sm" style="color:var(--text-secondary)"><div class="flex items-start gap-3"><i class="fas fa-circle-info mt-0.5" style="color:var(--accent-primary)"></i><p>輸出的每張投影片是一張頁面圖片，可保留原始版面，但文字、表格與圖形無法個別編輯。</p></div></div>
+                <button id="convertBtn" type="button" class="btn-primary w-full py-3 rounded-xl text-lg font-medium flex items-center justify-center gap-2" disabled><i class="fas fa-file-export"></i>轉換並下載 PPTX</button>
+                <button id="cancelBtn" type="button" class="btn-secondary hidden w-full justify-center"><i class="fas fa-ban"></i>取消處理</button>
+                <div id="progressPanel" class="panel hidden rounded-xl p-5" aria-live="polite">
+                    <div class="flex items-center justify-between gap-3 mb-3"><span id="progressTitle" class="text-sm font-bold" style="color:var(--text-primary)">處理進度</span><span id="progressPercent" class="text-sm font-medium" style="color:var(--accent-primary)">0%</span></div>
+                    <div class="progress-track h-2.5 rounded-full overflow-hidden"><div id="progressFill" class="progress-fill h-full" style="width:0"></div></div>
+                    <p id="progressText" class="text-xs mt-3" style="color:var(--text-secondary)">準備中...</p>
+                </div>
+            </aside>
+        </div>
+    </main>
+    <div class="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pb-6">
+        <details class="panel rounded-xl overflow-hidden"><summary class="p-4 cursor-pointer flex items-center gap-2 text-sm font-medium" style="color:var(--text-secondary)"><i class="fas fa-question-circle"></i>使用說明與限制</summary>
+            <div class="px-4 pb-4 text-sm space-y-3" style="color:var(--text-secondary)"><ol class="list-decimal list-inside space-y-2"><li>選擇 PDF，確認頁數與預覽。</li><li>選擇畫面品質和投影片比例。</li><li>按下「轉換並下載 PPTX」，處理完成後會自動下載。</li></ol><p>密碼保護的 PDF 會要求輸入密碼。超大檔案或大量頁面可能受裝置記憶體限制。</p></div>
+        </details>
+    </div>
+    <script>
+const MAX_PREVIEW_PAGES=24,LARGE_FILE_BYTES=104857600,MANY_PAGES=100,MAX_CANVAS_PIXELS=16000000,WHITE='#ffffff';
+const qualityPresets={compact:{scale:1.5,mime:'image/jpeg',quality:.78},standard:{scale:150/72,mime:'image/jpeg',quality:.9},high:{scale:3,mime:'image/png',quality:1}};
+let selectedFile=null,pdfDocument=null,abortRequested=false,isConverting=false,isBusy=false,previewUrls=[];
+const dropZone=document.getElementById('dropZone'),fileInput=document.getElementById('fileInput'),convertBtn=document.getElementById('convertBtn'),cancelBtn=document.getElementById('cancelBtn');
+
+dropZone.addEventListener('click',openFilePicker);
+dropZone.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openFilePicker();}});
+dropZone.addEventListener('dragover',event=>{event.preventDefault();if(!isBusy)dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',event=>{event.preventDefault();dropZone.classList.remove('drag-over');if(!isBusy&&event.dataTransfer.files.length)handleFile(event.dataTransfer.files[0]);});
+fileInput.addEventListener('change',()=>{if(fileInput.files.length)handleFile(fileInput.files[0]);fileInput.value='';});
+convertBtn.addEventListener('click',convertPdfToPpt);
+cancelBtn.addEventListener('click',()=>{abortRequested=true;updateProgress(null,'正在取消，請稍候...');});
+
+function openFilePicker(){if(!isBusy)fileInput.click();}
+
+async function handleFile(file){
+    if(!file||(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf'))){showStatus('請選擇有效的 PDF 檔案。',true);return;}
+    resetDocument();selectedFile=file;setBusy(true);showStatus('正在讀取 PDF...',false);
+    try{
+        const bytes=await file.arrayBuffer(),loadingTask=pdfjsLib.getDocument({data:bytes});
+        loadingTask.onPassword=(setPassword,reason)=>{
+            const message=reason===pdfjsLib.PasswordResponses.INCORRECT_PASSWORD?'密碼不正確，請重新輸入 PDF 密碼：':'這份 PDF 受到密碼保護，請輸入密碼：';
+            const password=window.prompt(message);if(password===null){loadingTask.destroy();return;}setPassword(password);
+        };
+        pdfDocument=await loadingTask.promise;
+        document.getElementById('emptyState').classList.add('hidden');
+        document.getElementById('fileState').classList.remove('hidden');
+        document.getElementById('fileName').textContent=file.name;
+        document.getElementById('fileMeta').textContent=pdfDocument.numPages+' 頁 · '+formatBytes(file.size);
+        updateWarning();convertBtn.disabled=false;showStatus('PDF 已就緒。',false,true);await renderPreviews();
+    }catch(error){
+        console.error(error);resetDocument();showStatus('無法讀取這份 PDF。檔案可能已損壞、密碼未提供或格式不受支援。',true);
+    }finally{setBusy(false);}
+}
+
+async function renderPreviews(){
+    const section=document.getElementById('previewSection'),grid=document.getElementById('previewGrid');
+    const count=Math.min(pdfDocument.numPages,MAX_PREVIEW_PAGES);section.classList.remove('hidden');
+    document.getElementById('previewNote').textContent=pdfDocument.numPages>MAX_PREVIEW_PAGES?'顯示前 '+MAX_PREVIEW_PAGES+' 頁，共 '+pdfDocument.numPages+' 頁':'共 '+pdfDocument.numPages+' 頁';
+    for(let number=1;number<=count;number++){
+        if(!pdfDocument)return;
+        const page=await pdfDocument.getPage(number),base=page.getViewport({scale:1});
+        const viewport=page.getViewport({scale:Math.min(.45,220/base.width)}),canvas=document.createElement('canvas');
+        canvas.width=Math.max(1,Math.floor(viewport.width));canvas.height=Math.max(1,Math.floor(viewport.height));
+        const context=canvas.getContext('2d',{alpha:false});context.fillStyle=WHITE;context.fillRect(0,0,canvas.width,canvas.height);
+        await page.render({canvasContext:context,viewport}).promise;
+        const url=URL.createObjectURL(await canvasToBlob(canvas,'image/jpeg',.72));previewUrls.push(url);
+        const card=document.createElement('figure'),image=document.createElement('img'),caption=document.createElement('figcaption');
+        card.className='page-card rounded-lg p-2';image.src=url;image.alt='PDF 第 '+number+' 頁預覽';image.className='page-preview w-full aspect-[3/4] rounded';
+        caption.className='text-xs text-center mt-2';caption.style.color='var(--text-secondary)';caption.textContent='第 '+number+' 頁';
+        card.append(image,caption);grid.appendChild(card);page.cleanup();canvas.width=1;canvas.height=1;
+    }
+}
+
+async function convertPdfToPpt(){
+    if(!pdfDocument||!selectedFile||isConverting)return;
+    if(typeof PptxGenJS==='undefined'){showStatus('PowerPoint 產生元件載入失敗，請確認網路連線後重新整理。',true);return;}
+    abortRequested=false;isConverting=true;setBusy(true);convertBtn.classList.add('hidden');cancelBtn.classList.remove('hidden');
+    document.getElementById('progressPanel').classList.remove('hidden');setProgressTitle('處理進度','');updateProgress(0,'正在建立簡報...');
+    try{
+        const pptx=new PptxGenJS();pptx.author='My Toolkit';pptx.company='My Toolkit';pptx.subject='PDF converted to PowerPoint';pptx.title=stripExtension(selectedFile.name);pptx.lang='zh-TW';
+        const firstPage=await pdfDocument.getPage(1),firstViewport=firstPage.getViewport({scale:1});
+        const dimensions=getSlideDimensions(document.getElementById('slideSize').value,firstViewport.width/firstViewport.height);
+        pptx.defineLayout({name:'PDF_PAGE',width:dimensions.width,height:dimensions.height});pptx.layout='PDF_PAGE';firstPage.cleanup();
+        const preset=qualityPresets[document.getElementById('quality').value];
+        for(let number=1;number<=pdfDocument.numPages;number++){
+            if(abortRequested)throw new DOMException('使用者取消處理','AbortError');
+            updateProgress(Math.round((number-1)/pdfDocument.numPages*92),'正在轉換第 '+number+' / '+pdfDocument.numPages+' 頁...');await nextFrame();
+            const page=await pdfDocument.getPage(number),image=await renderPageForSlide(page,preset);
+            const place=containRect(image.width/image.height,dimensions.width,dimensions.height),slide=pptx.addSlide();
+            slide.background={color:'FFFFFF'};slide.addImage({data:image.data,x:place.x,y:place.y,w:place.width,h:place.height,altText:'PDF page '+number});page.cleanup();
+        }
+        if(abortRequested)throw new DOMException('使用者取消處理','AbortError');
+        cancelBtn.disabled=true;updateProgress(95,'正在封裝並下載 PPTX，請勿關閉頁面...');
+        await pptx.writeFile({fileName:safeFileName(stripExtension(selectedFile.name))+'.pptx',compression:true});
+        updateProgress(100,'PPTX 已下載完成。');setProgressTitle('轉換完成','status-success');
+    }catch(error){
+        if(error&&error.name==='AbortError'){updateProgress(0,'已取消轉換。');setProgressTitle('已取消','');}
+        else{console.error(error);updateProgress(0,'轉換失敗。請嘗試降低畫面品質，或改用頁數較少的 PDF。');setProgressTitle('轉換失敗','status-error');}
+    }finally{isConverting=false;setBusy(false);cancelBtn.disabled=false;cancelBtn.classList.add('hidden');convertBtn.classList.remove('hidden');convertBtn.disabled=!pdfDocument;}
+}
+
+async function renderPageForSlide(page,preset){
+    const base=page.getViewport({scale:1});let scale=preset.scale;
+    const pixels=base.width*base.height*scale*scale;if(pixels>MAX_CANVAS_PIXELS)scale*=Math.sqrt(MAX_CANVAS_PIXELS/pixels);
+    const viewport=page.getViewport({scale}),canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.floor(viewport.width));canvas.height=Math.max(1,Math.floor(viewport.height));
+    const context=canvas.getContext('2d',{alpha:false});context.fillStyle=WHITE;context.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:context,viewport,intent:'print'}).promise;
+    const result={data:canvas.toDataURL(preset.mime,preset.quality),width:canvas.width,height:canvas.height};canvas.width=1;canvas.height=1;return result;
+}
+function getSlideDimensions(mode,ratio){
+    if(mode==='wide')return{width:13.333,height:7.5};if(mode==='standard')return{width:10,height:7.5};
+    return ratio>=1?{width:13.333,height:13.333/ratio}:{width:7.5*ratio,height:7.5};
+}
+function containRect(ratio,width,height){
+    if(ratio>width/height){const h=width/ratio;return{x:0,y:(height-h)/2,width,height:h};}
+    const w=height*ratio;return{x:(width-w)/2,y:0,width:w,height};
+}
+function setBusy(busy){
+    isBusy=busy;dropZone.setAttribute('aria-disabled',String(busy));document.getElementById('quality').disabled=busy;document.getElementById('slideSize').disabled=busy;
+    if(busy&&!isConverting)convertBtn.disabled=true;
+}
+function updateWarning(){
+    const messages=[];if(selectedFile.size>=LARGE_FILE_BYTES)messages.push('檔案超過 100 MB');if(pdfDocument.numPages>=MANY_PAGES)messages.push('頁數達 '+pdfDocument.numPages+' 頁');
+    const box=document.getElementById('warningBox');if(!messages.length){box.classList.add('hidden');return;}
+    document.getElementById('warningText').textContent=messages.join('且')+'，建議選擇「小檔案」品質並保持頁面開啟。';box.classList.remove('hidden');
+}
+function updateProgress(percent,text){
+    if(percent!==null){const value=Math.max(0,Math.min(100,percent));document.getElementById('progressFill').style.width=value+'%';document.getElementById('progressPercent').textContent=value+'%';}
+    document.getElementById('progressText').textContent=text;
+}
+function setProgressTitle(text,className){const title=document.getElementById('progressTitle');title.textContent=text;title.className='text-sm font-bold'+(className?' '+className:'');}
+function showStatus(message,isError,isSuccess){
+    document.getElementById('progressPanel').classList.remove('hidden');setProgressTitle(isError?'讀取失敗':'檔案狀態',isError?'status-error':isSuccess?'status-success':'');updateProgress(isSuccess?100:0,message);
+}
+function resetDocument(){
+    if(pdfDocument)pdfDocument.destroy();pdfDocument=null;selectedFile=null;convertBtn.disabled=true;
+    document.getElementById('emptyState').classList.remove('hidden');document.getElementById('fileState').classList.add('hidden');
+    document.getElementById('previewSection').classList.add('hidden');document.getElementById('previewGrid').replaceChildren();document.getElementById('warningBox').classList.add('hidden');
+    previewUrls.forEach(url=>URL.revokeObjectURL(url));previewUrls=[];
+}
+function canvasToBlob(canvas,mime,quality){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('無法產生預覽圖片')),mime,quality));}
+function nextFrame(){return new Promise(resolve=>requestAnimationFrame(resolve));}
+function stripExtension(name){return name.replace(/\.pdf$/i,'');}
+function safeFileName(name){const cleaned=name.replace(/[<>:"/\\|?*\u0000-\u001F]/g,'_').trim();return cleaned||'converted-presentation';}
+function formatBytes(bytes){if(bytes===0)return'0 B';const units=['B','KB','MB','GB'],index=Math.min(Math.floor(Math.log(bytes)/Math.log(1024)),units.length-1);return(bytes/(1024**index)).toFixed(index===0?0:1)+' '+units[index];}
+window.addEventListener('beforeunload',event=>{if(!isConverting)return;event.preventDefault();event.returnValue='';});
+</script>
+</body>
+</html>

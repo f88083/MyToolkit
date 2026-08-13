@@ -39,6 +39,10 @@
   - 在本機端壓縮 PDF 檔案，減少檔案大小。
   - 支援自訂壓縮比例，特別適合處理包含大量圖片的掃描檔。
 
+- **[PDF to PowerPoint](pdfToPpt.html)**
+  - 將 PDF 每一頁轉成一張高畫質 PowerPoint 投影片。
+  - 支援輸出品質與投影片比例設定，全程在瀏覽器本機處理。
+
 ## 🔒 隱私與安全
 
 本專案最核心的設計原則是 **「本機優先 (Local-First)」**：
@@ -55,6 +59,7 @@
   - Tesseract.js (OCR)
   - SparkMD5 (Hash)
   - jsPDF & pdf.js (PDF Generation & Processing)
+  - PptxGenJS (PowerPoint Generation)
   - Diff.js (Diffing)
 
 ## 🚀 如何使用
