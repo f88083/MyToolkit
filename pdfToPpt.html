@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF to PowerPoint - My Toolkit</title>
     <meta name="description" content="在瀏覽器本機將 PDF 每一頁轉換為 PowerPoint 投影片">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config={theme:{extend:{colors:{'custom-dark':'#213448','custom-medium':'#547792','custom-light':'#94B4C1','custom-beige':'#EAE0CF'}}}};
-    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/common.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -36,6 +32,8 @@
         .warning-box{background:var(--warning-bg);border:1px solid var(--warning-border)}
         .status-success{color:var(--success)}.status-error{color:var(--danger)}
     </style>
+    <!-- Keep utilities last to match the former Tailwind CDN cascade. -->
+    <link href="assets/css/tailwind.css" rel="stylesheet">
 </head>
 <body class="min-h-screen flex flex-col">
     <header class="flex justify-between items-center p-4 rounded-xl shadow-sm mx-4 mt-4" style="background:var(--bg-header);border:1px solid var(--border-color);transition:all .3s ease">

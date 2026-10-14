@@ -6,22 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Folder Path to Folder Name - My Toolkit</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-dark': '#213448',
-                        'custom-medium': '#547792',
-                        'custom-light': '#94B4C1',
-                        'custom-beige': '#EAE0CF',
-                    }
-                }
-            }
-        }
-    </script>
 
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -85,6 +69,8 @@
             animation: copySuccess 0.3s ease;
         }
     </style>
+    <!-- Keep utilities last to match the former Tailwind CDN cascade. -->
+    <link href="assets/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="min-h-screen flex flex-col p-4 md:p-6 gap-6">

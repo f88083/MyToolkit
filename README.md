@@ -60,12 +60,12 @@
 - ✅ **無後端**：沒有後端伺服器接收您的資料。
 - ✅ **安全**：您的敏感資料（如圖片、文件）永遠不會離開您的電腦。
 
-頁面會透過 CDN 載入樣式、字型與 JavaScript 套件；OCR 也需要下載語言模型。因此使用時仍需要網路連線，本機處理不代表完全離線使用。
+Tailwind 樣式由網站本身提供靜態 CSS；Font Awesome、字型與其他 JavaScript 套件仍透過 CDN 載入，OCR 也需要下載語言模型。因此使用時仍需要網路連線，本機處理不代表完全離線使用。
 
 ## 💻 技術棧
 
 - **Core**: HTML5, Vanilla JavaScript
-- **Styling**: Tailwind CSS, Font Awesome
+- **Styling**: Tailwind CSS 3.4.17（預先編譯的靜態 CSS）, Font Awesome
 - **Libraries**:
   - Tesseract.js (OCR)
   - SparkMD5 (Hash)
@@ -91,6 +91,21 @@
 3. 用瀏覽器開啟 `http://localhost:8000/`。
 
 請保持網路連線，以載入 CDN 套件與 OCR 語言模型。直接以 `file://` 開啟 `index.html` 無法完整使用所有工具，例如 AI Resources 的資源清單可能會被瀏覽器的安全限制阻擋。
+
+### 開發與更新 Tailwind 樣式
+
+已編譯的 `assets/css/tailwind.css` 隨專案提供，瀏覽網站不需要 Node.js，也不會在瀏覽器執行 Tailwind 編譯。
+
+修改 HTML 或 JavaScript 中的 Tailwind class 後，可在專案目錄使用 Node.js 22 與 npm 重建樣式：
+
+```bash
+npm ci
+npm run build:css
+```
+
+開發時可執行 `npm run watch:css`，在修改 class 後自動重建 CSS。自訂配色集中在 `tailwind.config.js`；Tailwind 指令來源是 `assets/css/tailwind.input.css`。請保留完整 class 名稱（例如 `text-red-500`），避免動態拼接，以便建置工具掃描。
+
+提交時請包含產生的 `assets/css/tailwind.css`。GitHub Actions 會在 PR 檢查 CSS 是否與來源一致；相關來源推送到 `master` 後，則會自動重建、提交有變更的 CSS，並請求 GitHub Pages 重新建置。此流程沿用從 `master` 根目錄部署的 GitHub Pages 設定；需要啟用 Actions，並允許 workflow 的 `contents: write` 與 `pages: write` 權限。若 Actions 未啟用，請在本機重建並提交 CSS。
 
 ## 📝 授權
 

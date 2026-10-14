@@ -1,0 +1,94 @@
+name: Build static CSS
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '*.html'
+      - 'assets/js/**'
+      - 'assets/css/tailwind.input.css'
+      - 'assets/css/tailwind.css'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/build-css.yml'
+  pull_request:
+    paths:
+      - '*.html'
+      - 'assets/js/**'
+      - 'assets/css/tailwind.input.css'
+      - 'assets/css/tailwind.css'
+      - 'tailwind.config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/build-css.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: static-css-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:css
+      - name: Check generated CSS is up to date
+        run: git diff --exit-code -- assets/css/tailwind.css
+
+  build:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:css
+      - name: Commit updated CSS
+        id: css
+        shell: bash
+        run: |
+          if git diff --quiet -- assets/css/tailwind.css; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/tailwind.css
+          git commit -m "build: regenerate static Tailwind CSS"
+          git push origin HEAD:master
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      # Commits made with GITHUB_TOKEN do not trigger a branch-based Pages build.
+      - name: Request GitHub Pages rebuild
+        if: steps.css.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TOOLKIT_REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          for attempt in 1 2 3; do
+            if gh api --method POST "repos/$TOOLKIT_REPOSITORY/pages/builds" --silent; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
+          done
+          echo "Could not request a GitHub Pages rebuild." >&2
+          exit 1

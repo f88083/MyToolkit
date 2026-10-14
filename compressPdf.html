@@ -7,22 +7,6 @@
     <title>PDF 壓縮器 - My Toolkit</title>
     <meta name="description" content="本機端 PDF 壓縮工具，可自訂壓縮比例，減少 PDF 檔案大小">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-dark': '#213448',
-                        'custom-medium': '#547792',
-                        'custom-light': '#94B4C1',
-                        'custom-beige': '#EAE0CF',
-                    }
-                }
-            }
-        }
-    </script>
 
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -193,6 +177,8 @@
         }
 
     </style>
+    <!-- Keep utilities last to match the former Tailwind CDN cascade. -->
+    <link href="assets/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="min-h-screen flex flex-col">

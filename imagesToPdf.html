@@ -7,22 +7,6 @@
     <title>Images to PDF - My Toolkit</title>
     <meta name="description" content="將多張圖片合併成 PDF，支援拖曳排序、自訂壓縮程度與頁面設定">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'custom-dark': '#213448',
-                        'custom-medium': '#547792',
-                        'custom-light': '#94B4C1',
-                        'custom-beige': '#EAE0CF',
-                    }
-                }
-            }
-        }
-    </script>
 
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -242,6 +226,8 @@
             color: white;
         }
     </style>
+    <!-- Keep utilities last to match the former Tailwind CDN cascade. -->
+    <link href="assets/css/tailwind.css" rel="stylesheet">
 </head>
 
 <body class="min-h-screen flex flex-col">
