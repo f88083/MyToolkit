@@ -306,6 +306,33 @@
             font-weight: 500;
             transition: all 0.3s ease;
         }
+        #jsonInput {
+            min-width: 0;
+            line-height: 1.25rem;
+            flex: 1;
+        }
+        .input-line-numbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            background-color: var(--bg-secondary);
+            overflow: hidden;
+            min-width: 3.25rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            text-align: right;
+            white-space: pre;
+            user-select: none;
+            color: var(--text-tertiary);
+            border-right: 1px solid var(--border-color);
+        }
+        .input-error-line {
+            color: var(--error-text);
+            background-color: var(--error-bg);
+            font-weight: bold;
+        }
     </style>
     <!-- Keep utilities last to match the former Tailwind CDN cascade. -->
     <link href="assets/css/tailwind.css" rel="stylesheet">
@@ -359,11 +386,16 @@
 
         <!-- Input Section -->
         <div class="flex flex-col gap-2 min-h-0">
-            <div class="flex justify-between items-center px-1">
+            <div class="flex flex-wrap justify-between items-center gap-2 px-1">
                 <h2 class="text-sm font-semibold text-custom-medium uppercase tracking-wider">
                     <i class="fas fa-edit mr-1"></i> JSON 輸入區
                 </h2>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="inputLineToggle" type="button" onclick="toggleInputLineNumbers()" aria-pressed="false"
+                        aria-controls="inputLineNumbers" class="btn-secondary px-2 py-1 text-xs">
+                        <i class="fas fa-list-ol"></i><span id="inputLineNumberText">輸入行號</span>
+                    </button>
+                    <button id="jumpToError" type="button" onclick="jumpToInputError()" class="btn-secondary px-2 py-1 text-xs hidden">定位錯誤</button>
                     <label class="flex items-center gap-2 text-xs" style="color: var(--text-secondary);">
                         <input type="checkbox" id="autoFormat" checked onchange="handleInput()">
                         <span>自動格式化</span>
@@ -374,10 +406,11 @@
             <!-- Validation Status -->
             <div id="validationStatus"></div>
 
-            <div class="flex-1 rounded-lg shadow-sm overflow-hidden flex flex-col"
+            <div class="flex-1 rounded-lg shadow-sm overflow-hidden flex min-h-0 relative"
                 style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease;">
-                <textarea id="jsonInput" class="w-full h-full p-4 json-editor resize-none focus:outline-none text-sm"
-                    style="background-color: var(--bg-secondary); color: var(--text-primary); transition: all 0.3s ease;"
+                <pre id="inputLineNumbers" class="input-line-numbers hidden m-0 py-4 px-3" aria-hidden="true"></pre>
+                <textarea id="jsonInput" wrap="off" onscroll="syncInputScroll()" class="w-full h-full p-4 json-editor resize-none focus:outline-none text-sm"
+                    style="background-color: var(--bg-secondary); color: var(--text-primary); transition: background-color 0.3s ease, color 0.3s ease;"
                     placeholder='貼上或輸入 JSON，例如：&#10;{&#10;  "name": "My Toolkit",&#10;  "version": "1.0",&#10;  "tools": ["table", "json"]&#10;}'
                     oninput="handleInput()"></textarea>
             </div>
@@ -433,6 +466,8 @@
     </div>
 
     <script>
+        let inputLineNumbersEnabled = false;
+        let currentInputError = null;
         let syntaxHighlightEnabled = true;
         let lineNumbersEnabled = false;
         let currentJSON = undefined; // undefined 表示尚無有效輸入；null 是合法 JSON 值
@@ -445,6 +480,10 @@
             initTheme();
             loadSampleJSON();
             updateButtonStates(); // 初始化按鈕狀態
+            window.addEventListener('resize', syncInputScroll);
+            if (typeof ResizeObserver !== 'undefined') {
+                new ResizeObserver(syncInputScroll).observe(document.getElementById('jsonInput'));
+            }
         });
 
         // Load sample JSON
@@ -545,10 +584,149 @@
             return write(value, 0);
         }
 
+        function syncInputScroll() {
+            const input = document.getElementById('jsonInput');
+            const gutter = document.getElementById('inputLineNumbers');
+            // The absolute gutter cannot affect the editor's grid height.
+            input.style.marginLeft = inputLineNumbersEnabled ? gutter.offsetWidth + 'px' : '0px';
+            // Match the text viewport even when a horizontal scrollbar is present.
+            gutter.style.height = input.clientHeight + 'px';
+            gutter.scrollTop = input.scrollTop;
+        }
+
+        function updateInputLineNumbers() {
+            const input = document.getElementById('jsonInput');
+            const gutter = document.getElementById('inputLineNumbers');
+            const count = input.value.split(String.fromCharCode(10)).length;
+            gutter.innerHTML = Array.from({ length: count }, (_, i) => {
+                const number = i + 1;
+                return currentInputError && number === currentInputError.line
+                    ? '<span class="input-error-line">' + number + '</span>' : String(number);
+            }).join(String.fromCharCode(10));
+            syncInputScroll();
+        }
+
+        function toggleInputLineNumbers() {
+            inputLineNumbersEnabled = !inputLineNumbersEnabled;
+            document.getElementById('inputLineNumbers').classList.toggle('hidden', !inputLineNumbersEnabled);
+            const button = document.getElementById('inputLineToggle');
+            button.setAttribute('aria-pressed', String(inputLineNumbersEnabled));
+            document.getElementById('inputLineNumberText').textContent = inputLineNumbersEnabled ? '輸入行號 ✓' : '輸入行號';
+            updateInputLineNumbers();
+        }
+
+        function clearInputError() {
+            currentInputError = null;
+            document.getElementById('jumpToError').classList.add('hidden');
+            updateInputLineNumbers();
+        }
+
+        function locateJSONError(input) {
+            let index = 0;
+            const fail = () => { throw { offset: index }; };
+            const whitespace = () => { while (/[ \t\r\n]/.test(input[index] || '') && index < input.length) index++; };
+            const expect = character => { if (input[index] !== character) fail(); index++; };
+            const string = () => {
+                expect('"');
+                while (index < input.length) {
+                    const character = input[index++];
+                    if (character === '"') return;
+                    if (character.charCodeAt(0) < 32) { index--; fail(); }
+                    if (character.charCodeAt(0) === 92) {
+                        const escape = input[index++];
+                        if (escape === 'u') {
+                            for (let i = 0; i < 4; i++) {
+                                if (!/[0-9a-f]/i.test(input[index] || '')) fail();
+                                index++;
+                            }
+                        } else if (!escape || !'"/bfnrt'.includes(escape) && escape.charCodeAt(0) !== 92) {
+                            index = Math.min(index - 1, input.length);
+                            fail();
+                        }
+                    }
+                }
+                fail();
+            };
+            const value = () => {
+                whitespace();
+                const character = input[index];
+                if (character === '"') return string();
+                if (character === '{' || character === '[') {
+                    const object = character === '{', end = object ? '}' : ']';
+                    index++; whitespace();
+                    if (input[index] === end) { index++; return; }
+                    while (true) {
+                        if (object) { string(); whitespace(); expect(':'); }
+                        value(); whitespace();
+                        if (input[index] === end) { index++; return; }
+                        expect(','); whitespace();
+                    }
+                }
+                const literal = character === 't' ? 'true' : character === 'f' ? 'false' : character === 'n' ? 'null' : null;
+                if (literal) {
+                    for (const expected of literal) expect(expected);
+                    return;
+                }
+                const digit = () => /[0-9]/.test(input[index] || '');
+                if (input[index] === '-') index++;
+                if (input[index] === '0') index++;
+                else {
+                    if (!/[1-9]/.test(input[index] || '')) fail();
+                    while (digit()) index++;
+                }
+                if (input[index] === '.') {
+                    index++;
+                    if (!digit()) fail();
+                    while (digit()) index++;
+                }
+                if (input[index] === 'e' || input[index] === 'E') {
+                    index++;
+                    if (input[index] === '+' || input[index] === '-') index++;
+                    if (!digit()) fail();
+                    while (digit()) index++;
+                }
+            };
+            try {
+                value(); whitespace();
+                if (index < input.length) fail();
+                return null;
+            } catch (error) {
+                if (!Number.isInteger(error.offset)) return null;
+                const offset = Math.min(error.offset, input.length);
+                const lines = input.slice(0, offset).split(/\r\n|\r|\n/);
+                return { offset, line: lines.length, column: lines[lines.length - 1].length + 1 };
+            }
+        }
+
+        function jumpToInputError() {
+            if (!currentInputError) return;
+            if (!inputLineNumbersEnabled) toggleInputLineNumbers();
+            const input = document.getElementById('jsonInput');
+            const { offset, line, column } = currentInputError;
+            input.focus();
+            const length = input.value.codePointAt(offset) > 65535 ? 2 : 1;
+            input.setSelectionRange(offset, Math.min(input.value.length, offset + length));
+            const style = getComputedStyle(input);
+            input.scrollTop = Math.max(0, (line - 1) * parseFloat(style.lineHeight) - input.clientHeight / 2 + parseFloat(style.paddingTop));
+            const context = document.createElement('canvas').getContext('2d');
+            context.font = style.fontSize + ' ' + style.fontFamily;
+            const prefix = input.value.split(String.fromCharCode(10))[line - 1].slice(0, column - 1);
+            const tabWidth = context.measureText(' ').width * (parseFloat(style.tabSize) || 2);
+            const segments = prefix.split(String.fromCharCode(9));
+            let width = 0;
+            segments.forEach((segment, index) => {
+                width += context.measureText(segment).width;
+                if (index < segments.length - 1) width = (Math.floor(width / tabWidth) + 1) * tabWidth;
+            });
+            input.scrollLeft = Math.max(0, width - input.clientWidth / 2 + parseFloat(style.paddingLeft));
+            syncInputScroll();
+        }
+
         // Handle input changes
         function handleInput() {
             const input = document.getElementById('jsonInput').value;
             const autoFormat = document.getElementById('autoFormat').checked;
+            clearInputError();
 
             if (!input.trim()) {
                 currentJSON = undefined;
@@ -579,7 +757,11 @@
                 document.getElementById('copyFeedback').style.opacity = '0';
 
                 // 顯示詳細的錯誤訊息
-                const errorMsg = error.message;
+                currentInputError = error instanceof SyntaxError ? locateJSONError(input) : null;
+                const location = currentInputError ? `第 ${currentInputError.line} 行，第 ${currentInputError.column} 欄：` : '';
+                const errorMsg = location + error.message;
+                document.getElementById('jumpToError').classList.toggle('hidden', !currentInputError);
+                updateInputLineNumbers();
                 showError('✗ JSON 格式錯誤: ' + errorMsg);
 
                 // 在輸出區也顯示錯誤提示
@@ -885,6 +1067,7 @@
 
         // Clear validation status
         function clearValidation() {
+            clearInputError();
             document.getElementById('validationStatus').innerHTML = '';
         }
 
