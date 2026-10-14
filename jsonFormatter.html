@@ -437,6 +437,7 @@
         let lineNumbersEnabled = false;
         let currentJSON = undefined; // undefined 表示尚無有效輸入；null 是合法 JSON 值
         let currentJSONText = '';
+        let currentDisplayFormatted = true;
         let currentIndent = 2; // 預設 2 空格縮排
 
         // Initialize
@@ -546,10 +547,10 @@
 
         // Handle input changes
         function handleInput() {
-            const input = document.getElementById('jsonInput').value.trim();
+            const input = document.getElementById('jsonInput').value;
             const autoFormat = document.getElementById('autoFormat').checked;
 
-            if (!input) {
+            if (!input.trim()) {
                 currentJSON = undefined;
                 document.getElementById('jsonPathContainer').classList.add('hidden');
                 clearOutput();
@@ -564,7 +565,7 @@
                 if (autoFormat) {
                     formatJSON(currentIndent);
                 } else {
-                    displayJSON(input);
+                    displayJSON(input, false);
                 }
 
                 // Show JSON Path container
@@ -574,6 +575,7 @@
             } catch (error) {
                 currentJSON = undefined;
                 currentJSONText = '';
+                currentDisplayFormatted = false;
                 document.getElementById('copyFeedback').style.opacity = '0';
 
                 // 顯示詳細的錯誤訊息
@@ -611,11 +613,12 @@
         }
 
         // Display JSON with optional syntax highlighting
-        function displayJSON(jsonString) {
+        function displayJSON(jsonString, formatted = true) {
             currentJSONText = jsonString;
+            currentDisplayFormatted = formatted;
             const output = document.getElementById('jsonOutput');
 
-            if (syntaxHighlightEnabled && currentJSON !== undefined) {
+            if (syntaxHighlightEnabled && formatted && currentJSON !== undefined) {
                 // Use tree rendering with folding support
                 output.innerHTML = renderJSONTree(currentJSON);
                 output.classList.add('json-tree');
@@ -627,9 +630,7 @@
                 output.classList.remove('json-tree');
             }
 
-            if (lineNumbersEnabled) {
-                updateLineNumbers(jsonString);
-            }
+            updateLineNumbers();
         }
 
         // Syntax highlighting
@@ -766,6 +767,7 @@
                 children.classList.add('collapsed');
                 toggleElement.textContent = '+';
             }
+            updateLineNumbers();
         }
 
         // Toggle syntax highlighting
@@ -775,8 +777,7 @@
             text.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
 
             if (currentJSON !== undefined) {
-                const formatted = stringifyJSONLosslessly(currentJSON, currentIndent);
-                displayJSON(formatted);
+                displayJSON(currentJSONText, currentDisplayFormatted);
             }
         }
 
@@ -786,20 +787,9 @@
             const lineNumbers = document.getElementById('lineNumbers');
             const text = document.getElementById('lineNumberText');
 
-            if (lineNumbersEnabled) {
-                lineNumbers.classList.remove('hidden');
-                text.textContent = '行號 ✓';
-                // 重新顯示 JSON 內容以確保行號與內容同步
-                if (currentJSON !== undefined) {
-                    const formatted = stringifyJSONLosslessly(currentJSON, currentIndent);
-                    displayJSON(formatted);
-                }
-            } else {
-                lineNumbers.classList.add('hidden');
-                text.textContent = '行號';
-                // 清空行號
-                lineNumbers.innerHTML = '';
-            }
+            lineNumbers.classList.toggle('hidden', !lineNumbersEnabled);
+            text.textContent = lineNumbersEnabled ? '行號 ✓' : '行號';
+            updateLineNumbers();
         }
 
         // Update button states to show current selections
@@ -824,11 +814,16 @@
         }
 
         // Update line numbers
-        function updateLineNumbers(text) {
-            const lines = text.split('\n');
+        function updateLineNumbers() {
             const lineNumbers = document.getElementById('lineNumbers');
-            // 使用 textContent 和換行符，因為 lineNumbers 現在是 pre 標籤
-            lineNumbers.textContent = lines.map((_, i) => i + 1).join('\n');
+            if (!lineNumbersEnabled || currentJSON === undefined) {
+                lineNumbers.textContent = '';
+                return;
+            }
+            // innerText excludes folded children and hidden UI placeholders.
+            const visibleText = document.getElementById('jsonOutput').innerText;
+            const count = visibleText.replace(/\r\n?/g, String.fromCharCode(10)).split(String.fromCharCode(10)).length;
+            lineNumbers.textContent = Array.from({ length: count }, (_, i) => i + 1).join(String.fromCharCode(10));
         }
 
         // Update JSON Path display
@@ -882,6 +877,7 @@
         // Clear output
         function clearOutput() {
             currentJSONText = '';
+            currentDisplayFormatted = false;
             document.getElementById('copyFeedback').style.opacity = '0';
             document.getElementById('jsonOutput').textContent = '';
             document.getElementById('lineNumbers').innerHTML = '';
