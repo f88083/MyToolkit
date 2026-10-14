@@ -449,7 +449,7 @@
     <script>
         let syntaxHighlightEnabled = true;
         let lineNumbersEnabled = false;
-        let currentJSON = null;
+        let currentJSON = undefined; // undefined 表示尚無有效輸入；null 是合法 JSON 值
         let currentIndent = 2; // 預設 2 空格縮排
 
         // Initialize
@@ -500,6 +500,8 @@
             const autoFormat = document.getElementById('autoFormat').checked;
 
             if (!input) {
+                currentJSON = undefined;
+                document.getElementById('jsonPathContainer').classList.add('hidden');
                 clearOutput();
                 clearValidation();
                 return;
@@ -520,7 +522,7 @@
                 updateJSONPath('$');
 
             } catch (error) {
-                currentJSON = null;
+                currentJSON = undefined;
 
                 // 顯示詳細的錯誤訊息
                 const errorMsg = error.message;
@@ -544,7 +546,7 @@
 
         // Format JSON with specified indentation
         function formatJSON(spaces) {
-            if (!currentJSON) {
+            if (currentJSON === undefined) {
                 showError('請先輸入有效的 JSON');
                 return;
             }
@@ -560,7 +562,7 @@
         function displayJSON(jsonString) {
             const output = document.getElementById('jsonOutput');
 
-            if (syntaxHighlightEnabled && currentJSON) {
+            if (syntaxHighlightEnabled && currentJSON !== undefined) {
                 // Use tree rendering with folding support
                 output.innerHTML = renderJSONTree(currentJSON);
                 output.classList.add('json-tree');
@@ -716,7 +718,7 @@
             const text = document.getElementById('highlightText');
             text.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
 
-            if (currentJSON) {
+            if (currentJSON !== undefined) {
                 const formatted = JSON.stringify(currentJSON, null, currentIndent);
                 displayJSON(formatted);
             }
@@ -732,7 +734,7 @@
                 lineNumbers.classList.remove('hidden');
                 text.textContent = '行號 ✓';
                 // 重新顯示 JSON 內容以確保行號與內容同步
-                if (currentJSON) {
+                if (currentJSON !== undefined) {
                     const formatted = JSON.stringify(currentJSON, null, currentIndent);
                     displayJSON(formatted);
                 }
@@ -839,7 +841,7 @@
                 document.getElementById('jsonInput').value = '';
                 clearOutput();
                 clearValidation();
-                currentJSON = null;
+                currentJSON = undefined;
                 document.getElementById('jsonPathContainer').classList.add('hidden');
             }
         }
