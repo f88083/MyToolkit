@@ -10,6 +10,29 @@
 
 - 尚無。
 
+## 2026-10-14
+
+### 新增
+
+- Markdown 表格生成器支援貼上 Markdown 表格，包含程式碼區塊包覆的表格，並保留欄位、對齊與原始跳脫內容。
+- 新增 Tailwind CLI 建置設定與固定版本依賴，以及 GitHub Actions 的 PR 檢查、靜態 CSS 自動重建與 Pages 重建流程。
+
+### 變更
+
+- 全部 11 個頁面改用預先編譯的 Tailwind CSS 3.4.17 靜態檔案，移除瀏覽器端 Tailwind CDN 編譯，保留原有配色、版面與明暗主題。
+- README 補齊 AI Resources 工具說明，修正 Diff 技術棧、本機 HTTP 啟動方式與外部資源連線需求。
+- README 說明 PDF 壓縮使用 JPEG 畫質設定與圖片式輸出，以及 PDF to PowerPoint 的投影片內容無法個別編輯。
+
+### 修正
+
+- JSON 格式化工具正確接受 `false`、`0`、`null` 與 `""` 等合法 JSON 值，並避免清空或重置後恢復舊資料。
+- 修正 Markdown 表格在標題列上方插入列時產生零欄表頭的問題；新增資料列保留欄位對齊。
+- 試算表貼上保留空首尾欄與空白列，補齊較短的表頭或資料列，避免截斷內容。
+- 正確解析 quoted TSV 儲存格內的換行、Tab 與雙引號；格式錯誤時提示並保留原表格。
+- Markdown 輸出正確處理 pipe 與相鄰反斜線，保留一般 Markdown 格式及 inline code 的字面內容。
+- 儲存格換行輸出為同一格內的 `<br>`，正確處理 Enter、Shift+Enter、連續空白行與段落邊界。
+- 避免 Markdown 貼上被當成單欄 TSV 或重複跳脫；含 Tab 的試算表資料優先按 TSV 處理，錯誤的 Markdown 對齊列或未閉合程式碼區塊不會覆寫原表格。
+
 ## 2026-08-13
 
 ### 新增
