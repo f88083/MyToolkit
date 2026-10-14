@@ -66,6 +66,7 @@
             min-width: 100px;
             position: relative;
             outline: none;
+            white-space: pre-wrap;
             transition: background-color 0.2s, border-color 0.3s;
         }
 
@@ -607,6 +608,46 @@
             });
         }
 
+        function parseTSV(text) {
+            const tab = String.fromCharCode(9), newline = String.fromCharCode(10);
+            text = text.replace(/\r\n?/g, newline);
+            const rows = [];
+            let row = [], field = '', quoted = false, closed = false;
+            for (let i = 0; i < text.length; i++) {
+                const character = text[i];
+                if (quoted) {
+                    if (character === '"') {
+                        if (text[i + 1] === '"') {
+                            field += '"';
+                            i++;
+                        } else {
+                            quoted = false;
+                            closed = true;
+                        }
+                    } else field += character;
+                } else if (character === tab || character === newline) {
+                    row.push(field);
+                    field = '';
+                    closed = false;
+                    if (character === newline) {
+                        rows.push(row);
+                        row = [];
+                    }
+                } else if (closed) {
+                    throw new Error('引號結束後應為 Tab、換行或資料結尾。');
+                } else if (character === '"' && field === '') {
+                    quoted = true;
+                } else field += character;
+            }
+            if (quoted) throw new Error('儲存格的引號尚未結束，請確認複製的資料完整。');
+            // A final record separator is not an additional empty row.
+            if (!text.endsWith(newline) || row.length || field || closed) {
+                row.push(field);
+                rows.push(row);
+            }
+            return rows;
+        }
+
         // Handle paste event to import table data from Excel
         function handlePaste(e) {
             // Get clipboard data
@@ -621,11 +662,13 @@
             // Prevent default paste behavior
             e.preventDefault();
 
-            // Parse the pasted data
-            // Remove one clipboard row terminator, preserving empty edge cells and rows.
-            const rows = pastedText.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map(row =>
-                row.split('\t').map(cell => cell.trim())
-            );
+            let rows;
+            try {
+                rows = parseTSV(pastedText);
+            } catch (error) {
+                alert('無法匯入表格：' + error.message);
+                return;
+            }
 
             if (rows.length === 0) return;
 
@@ -800,8 +843,44 @@
 
         // --- Markdown Generation ---
 
+        function readCellText(element) {
+            const newline = String.fromCharCode(10);
+            const blockTags = new Set(['DIV', 'P', 'LI', 'BLOCKQUOTE', 'PRE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+            let text = '', previousBlock = false, previousEmptyBlock = false, previousParagraph = false, hasPrevious = false;
+            for (const node of element.childNodes) {
+                if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'BR') {
+                    // The final BR is a contenteditable caret placeholder, not an extra line.
+                    if (node === element.lastChild &&
+                        (element.matches('th, td') || blockTags.has(element.tagName))) continue;
+                    text += newline;
+                    previousBlock = previousEmptyBlock = previousParagraph = false;
+                    hasPrevious = true;
+                    continue;
+                }
+                const block = node.nodeType === Node.ELEMENT_NODE && blockTags.has(node.tagName);
+                const content = node.nodeType === Node.TEXT_NODE
+                    ? node.textContent
+                    : node.nodeType === Node.ELEMENT_NODE ? readCellText(node) : '';
+                const paragraph = node.nodeType === Node.ELEMENT_NODE && node.tagName === 'P';
+                if (hasPrevious && (previousBlock || block)) {
+                    const required = previousParagraph || paragraph ? 2 : 1;
+                    let existing = 0;
+                    for (let i = text.length - 1; i >= 0 && text[i] === newline; i--) existing++;
+                    const missing = Math.max(previousEmptyBlock ? 1 : 0, required - existing);
+                    text += newline.repeat(missing);
+                }
+                text += content;
+                previousBlock = block;
+                previousParagraph = paragraph;
+                previousEmptyBlock = block && content === '';
+                hasPrevious = true;
+            }
+            return text;
+        }
+
         function escapeMarkdownCell(cell) {
-            const text = cell.textContent.trim() || ' ';
+            const newline = String.fromCharCode(10);
+            const text = readCellText(cell).replace(/\r\n?/g, newline).trim() || ' ';
             const slash = String.fromCharCode(92);
             const escapePipes = value => {
                 let result = '', slashes = 0;
@@ -810,9 +889,13 @@
                         slashes++;
                         continue;
                     }
-                    result += character === '|'
-                        ? slash.repeat(slashes * 2 + 1) + '|'
-                        : slash.repeat(slashes) + character;
+                    if (character === newline) {
+                        result += slash.repeat(slashes * 2) + '<br>';
+                    } else {
+                        result += character === '|'
+                            ? slash.repeat(slashes * 2 + 1) + '|'
+                            : slash.repeat(slashes) + character;
+                    }
                     slashes = 0;
                 }
                 return result + slash.repeat(slashes);
@@ -835,13 +918,12 @@
 
                 output += escapePipes(text.slice(cursor, opening.index));
                 let code = text.slice(contentStart, closing.index);
-                if (code.includes(slash) && code.includes('|')) {
+                if ((code.includes(slash) && code.includes('|')) || code.includes(newline)) {
                     // Encoded HTML code preserves literal slashes next to pipes,
                     // which GFM cannot represent exactly in backtick table cells.
-                    code = code.split(String.fromCharCode(10)).join(' ');
                     if (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code)) code = code.slice(1, -1);
                     output += '<code>' + Array.from(code, character =>
-                        '&#' + character.codePointAt(0) + ';').join('') + '</code>';
+                        character === newline ? '<br>' : '&#' + character.codePointAt(0) + ';').join('') + '</code>';
                 } else {
                     output += delimiter + code.split('|').join(slash + '|') + delimiter;
                 }
