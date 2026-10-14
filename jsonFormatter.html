@@ -391,9 +391,9 @@
                     <i class="fas fa-edit mr-1"></i> JSON 輸入區
                 </h2>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button id="inputLineToggle" type="button" onclick="toggleInputLineNumbers()" aria-pressed="false"
+                    <button id="inputLineToggle" type="button" onclick="toggleInputLineNumbers()" aria-pressed="true"
                         aria-controls="inputLineNumbers" class="btn-secondary px-2 py-1 text-xs">
-                        <i class="fas fa-list-ol"></i><span id="inputLineNumberText">輸入行號</span>
+                        <i class="fas fa-list-ol"></i><span id="inputLineNumberText">輸入行號 ✓</span>
                     </button>
                     <button id="jumpToError" type="button" onclick="jumpToInputError()" class="btn-secondary px-2 py-1 text-xs hidden">定位錯誤</button>
                     <label class="flex items-center gap-2 text-xs" style="color: var(--text-secondary);">
@@ -408,7 +408,7 @@
 
             <div class="flex-1 rounded-lg shadow-sm overflow-hidden flex min-h-0 relative"
                 style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.3s ease;">
-                <pre id="inputLineNumbers" class="input-line-numbers hidden m-0 py-4 px-3" aria-hidden="true"></pre>
+                <pre id="inputLineNumbers" class="input-line-numbers m-0 py-4 px-3" aria-hidden="true"></pre>
                 <textarea id="jsonInput" wrap="off" onscroll="syncInputScroll()" class="w-full h-full p-4 json-editor resize-none focus:outline-none text-sm"
                     style="background-color: var(--bg-secondary); color: var(--text-primary); transition: background-color 0.3s ease, color 0.3s ease;"
                     placeholder='貼上或輸入 JSON，例如：&#10;{&#10;  "name": "My Toolkit",&#10;  "version": "1.0",&#10;  "tools": ["table", "json"]&#10;}'
@@ -443,13 +443,13 @@
                     <i class="fas fa-palette"></i> <span id="highlightText">語法高亮</span>
                 </button>
                 <button onclick="toggleLineNumbers()" class="btn-secondary">
-                    <i class="fas fa-list-ol"></i> <span id="lineNumberText">行號</span>
+                    <i class="fas fa-list-ol"></i> <span id="lineNumberText">行號 ✓</span>
                 </button>
             </div>
 
             <div class="flex-1 rounded-lg shadow-inner overflow-auto flex" id="outputContainer"
                 style="background-color: var(--code-bg); transition: background-color 0.3s ease; align-items: flex-start;">
-                <pre id="lineNumbers" class="line-numbers p-4 hidden m-0" style="flex-shrink: 0;"></pre>
+                <pre id="lineNumbers" class="line-numbers p-4 m-0" style="flex-shrink: 0;"></pre>
                 <pre id="jsonOutput" class="flex-1 p-4 json-output text-sm m-0"
                     style="background-color: var(--code-bg); color: var(--code-text); transition: all 0.3s ease;"></pre>
             </div>
@@ -466,10 +466,10 @@
     </div>
 
     <script>
-        let inputLineNumbersEnabled = false;
+        let inputLineNumbersEnabled = true;
         let currentInputError = null;
         let syntaxHighlightEnabled = true;
-        let lineNumbersEnabled = false;
+        let lineNumbersEnabled = true;
         let currentJSON = undefined; // undefined 表示尚無有效輸入；null 是合法 JSON 值
         let currentJSONText = '';
         let currentDisplayFormatted = true;
