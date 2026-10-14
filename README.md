@@ -10,6 +10,7 @@
   - 視覺化的表格編輯器，支援右鍵選單操作。
   - 可快速將 Excel 或手動輸入的內容轉為 Markdown 語法。
   - Excel 資料透過複製、貼上匯入，不支援直接讀取 `.xls` 或 `.xlsx` 檔案。
+  - 可貼上 Markdown 表格匯入編輯，保留欄位、跳脫內容與對齊設定。
 
 - **[JSON 格式化工具](jsonFormatter.html)**
   - 專業的 JSON 編輯器。

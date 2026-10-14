@@ -261,14 +261,14 @@
                     <h3 class="font-bold mb-3 flex items-center gap-2"
                         style="color: var(--text-primary); transition: color 0.3s ease;">
                         <i class="fas fa-table text-custom-medium"></i>
-                        Excel 表格快速匯入
+                        表格快速匯入
                         <span class="text-xs px-2 py-1 rounded-full"
                             style="background-color: var(--accent-secondary); color: var(--text-primary); transition: all 0.3s ease;">隱藏功能</span>
                     </h3>
                     <ul class="space-y-2 text-sm" style="color: var(--text-primary); transition: color 0.3s ease;">
                         <li class="flex items-start gap-2">
                             <i class="fas fa-star text-amber-600 mt-1"></i>
-                            <span>在 <strong>Excel 或 Google Sheets</strong> 中複製表格</span>
+                            <span>在 <strong>Excel 或 Google Sheets</strong> 中複製表格，或複製完整的 <strong>Markdown 表格</strong>（包含表頭與對齊列）</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <i class="fas fa-star text-amber-600 mt-1"></i>
@@ -648,7 +648,109 @@
             return rows;
         }
 
-        // Handle paste event to import table data from Excel
+        function splitMarkdownRow(line) {
+            const slash = String.fromCharCode(92);
+            line = line.trim();
+            const cells = [];
+            let cell = '', slashes = 0, separators = 0;
+            for (const character of line) {
+                if (character === '|') {
+                    if (slashes % 2) cell += character;
+                    else {
+                        cells.push(cell.trim());
+                        cell = '';
+                        separators++;
+                    }
+                    slashes = 0;
+                } else {
+                    cell += character;
+                    slashes = character === slash ? slashes + 1 : 0;
+                }
+            }
+            cells.push(cell.trim());
+            if (line.startsWith('|')) cells.shift();
+            let trailingSlashes = 0;
+            for (let i = line.length - 2; i >= 0 && line[i] === slash; i--) trailingSlashes++;
+            if (line.endsWith('|') && trailingSlashes % 2 === 0) cells.pop();
+            return { cells, separators };
+        }
+
+        function parseMarkdownTable(text) {
+            let lines = text.replace(/\r\n?/g, String.fromCharCode(10)).trim().split(String.fromCharCode(10));
+            const fence = lines[0].trim().match(/^(`{3,}|~{3,})(?:markdown|md)?\s*$/i);
+            if (fence) {
+                const closing = lines[lines.length - 1].trim();
+                if (closing[0] !== fence[1][0] || closing.length < fence[1].length ||
+                    Array.from(closing).some(character => character !== fence[1][0])) throw new Error('Markdown 程式碼區塊尚未正確結束。');
+                lines = lines.slice(1, -1);
+                while (lines.length && !lines[0].trim()) lines.shift();
+                while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+            }
+            if (lines.length < 2) {
+                if (fence) throw new Error('Markdown 表格需要表頭與對齊列。');
+                return null;
+            }
+            const header = splitMarkdownRow(lines[0]);
+            const separator = splitMarkdownRow(lines[1]);
+            const alignmentCell = cell => /^:?-+:?$/.test(cell);
+            if (!header.separators || !separator.separators || !separator.cells.length ||
+                !separator.cells.every(alignmentCell)) {
+                if (fence || (header.separators && separator.cells.some(alignmentCell))) {
+                    throw new Error('Markdown 對齊列格式不正確。');
+                }
+                return null;
+            }
+            if (header.cells.length !== separator.cells.length) throw new Error('Markdown 表頭與對齊列的欄數不同。');
+            const rows = [header.cells];
+            for (const line of lines.slice(2)) {
+                if (!line.trim()) throw new Error('Markdown 表格中間不可有空白列。');
+                const row = splitMarkdownRow(line).cells;
+                if (row.length > header.cells.length) throw new Error('Markdown 資料列超出表頭欄數，請確認 pipe 已跳脫。');
+                while (row.length < header.cells.length) row.push('');
+                rows.push(row);
+            }
+            const alignments = separator.cells.map(cell => cell.startsWith(':')
+                ? cell.endsWith(':') ? 'center' : 'left'
+                : cell.endsWith(':') ? 'right' : null);
+            return { rows, alignments };
+        }
+
+        function decodeMarkdownPipes(text) {
+            const slash = String.fromCharCode(92);
+            const decode = (value, codeSpan) => {
+                let result = '', slashes = 0;
+                for (const character of value) {
+                    if (character === slash) {
+                        slashes++;
+                        continue;
+                    }
+                    result += character === '|' && slashes % 2
+                        ? slash.repeat(codeSpan ? slashes - 1 : (slashes - 1) / 2) + '|'
+                        : slash.repeat(slashes) + character;
+                    slashes = 0;
+                }
+                return result + slash.repeat(slashes);
+            };
+            const tickRuns = /`+/g;
+            let result = '', cursor = 0, opening;
+            while ((opening = tickRuns.exec(text))) {
+                let precedingSlashes = 0;
+                for (let i = opening.index - 1; i >= 0 && text[i] === slash; i--) precedingSlashes++;
+                if (precedingSlashes % 2) continue;
+                const closingRuns = /`+/g;
+                closingRuns.lastIndex = opening.index + opening[0].length;
+                let closing;
+                while ((closing = closingRuns.exec(text)) && closing[0] !== opening[0]) {}
+                if (!closing) continue;
+                result += decode(text.slice(cursor, opening.index), false);
+                result += opening[0] + decode(text.slice(opening.index + opening[0].length, closing.index), true) + closing[0];
+                cursor = closing.index + closing[0].length;
+                tickRuns.lastIndex = cursor;
+            }
+            return result + decode(text.slice(cursor), false);
+        }
+
+        // Import Markdown tables or spreadsheet TSV from the clipboard.
         function handlePaste(e) {
             // Get clipboard data
             const clipboardData = e.clipboardData || window.clipboardData;
@@ -662,9 +764,11 @@
             // Prevent default paste behavior
             e.preventDefault();
 
-            let rows;
+            let rows, markdown;
             try {
-                rows = parseTSV(pastedText);
+                // Tabs identify spreadsheet TSV, even if cells resemble pipe-table syntax.
+                markdown = pastedText.includes(String.fromCharCode(9)) ? null : parseMarkdownTable(pastedText);
+                rows = markdown ? markdown.rows : parseTSV(pastedText);
             } catch (error) {
                 alert('無法匯入表格：' + error.message);
                 return;
@@ -674,12 +778,24 @@
 
             // Confirm with user before replacing table
             const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
-            if (!confirm(`偵測到表格資料 (${rows.length} 列 × ${colCount} 欄)。\n要匯入並取代現有表格嗎？`)) {
+            const format = markdown ? 'Markdown 表格' : '表格資料';
+            if (!confirm(`偵測到${format} (${rows.length} 列 × ${colCount} 欄)。\n要匯入並取代現有表格嗎？`)) {
                 return;
             }
 
             // Build new table
-            buildTableFromData(rows);
+            buildTableFromData(markdown ? rows.map(row => row.map(decodeMarkdownPipes)) : rows);
+            if (markdown) {
+                rows.forEach((row, rowIndex) => row.forEach((source, colIndex) => {
+                    const cell = table.rows[rowIndex].cells[colIndex];
+                    // Preserve imported Markdown until this cell's text is edited.
+                    cell.dataset.markdownSource = source;
+                    cell.dataset.importedText = readCellText(cell);
+                }));
+                markdown.alignments.forEach((align, index) => {
+                    if (align) setAlign(index, align);
+                });
+            }
             generateMarkdown();
         }
 
@@ -879,6 +995,9 @@
         }
 
         function escapeMarkdownCell(cell) {
+            if (cell.dataset.markdownSource !== undefined && readCellText(cell) === cell.dataset.importedText) {
+                return cell.dataset.markdownSource || ' ';
+            }
             const newline = String.fromCharCode(10);
             const text = readCellText(cell).replace(/\r\n?/g, newline).trim() || ' ';
             const slash = String.fromCharCode(92);
@@ -954,6 +1073,7 @@
                 const align = rows[0].cells[i].getAttribute('data-align') || 'left';
                 if (align === 'center') md += " :---: |";
                 else if (align === 'right') md += " ---: |";
+                else if (rows[0].cells[i].hasAttribute('data-align')) md += " :--- |";
                 else md += " --- |"; // default left
             }
             md += "\n";
