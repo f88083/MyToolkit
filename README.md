@@ -14,7 +14,6 @@
 - **[JSON 格式化工具](jsonFormatter.html)**
   - 專業的 JSON 編輯器。
   - 支援語法高亮、行號顯示、即時驗證與代碼摺疊。
-  - 已知限制：根層級的 `false`、`0`、`null`、`""` 雖是合法 JSON，目前格式化功能仍會誤判為無效值。
 
 - **[Image to Text (OCR)](imageToText.html)**
   - 上傳圖片自動擷取文字。
