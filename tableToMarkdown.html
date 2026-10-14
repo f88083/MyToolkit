@@ -614,7 +614,7 @@
             const pastedText = clipboardData.getData('text');
 
             // Check if the pasted content looks like table data (contains tabs or newlines)
-            if (!pastedText || (!pastedText.includes('\t') && !pastedText.includes('\n'))) {
+            if (!pastedText || (!pastedText.includes('\t') && !/[\r\n]/.test(pastedText))) {
                 return; // Let default paste behavior happen for regular text
             }
 
@@ -622,14 +622,16 @@
             e.preventDefault();
 
             // Parse the pasted data
-            const rows = pastedText.trim().split('\n').map(row =>
+            // Remove one clipboard row terminator, preserving empty edge cells and rows.
+            const rows = pastedText.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').map(row =>
                 row.split('\t').map(cell => cell.trim())
             );
 
             if (rows.length === 0) return;
 
             // Confirm with user before replacing table
-            if (!confirm(`偵測到表格資料 (${rows.length} 列 × ${rows[0].length} 欄)。\n要匯入並取代現有表格嗎？`)) {
+            const colCount = rows.reduce((max, row) => Math.max(max, row.length), 0);
+            if (!confirm(`偵測到表格資料 (${rows.length} 列 × ${colCount} 欄)。\n要匯入並取代現有表格嗎？`)) {
                 return;
             }
 
@@ -649,20 +651,23 @@
             thead.innerHTML = '';
             tbody.innerHTML = '';
 
+            // Pad short rows so no data is truncated by a shorter header.
+            const colCount = data.reduce((max, row) => Math.max(max, row.length), 0);
+
             // Create header row (first row of data)
             const headerRow = document.createElement('tr');
-            data[0].forEach(cellText => {
+            for (let j = 0; j < colCount; j++) {
+                const cellText = data[0][j];
                 const th = document.createElement('th');
                 th.contentEditable = 'true';
                 th.textContent = cellText || '';
                 headerRow.appendChild(th);
-            });
+            }
             thead.appendChild(headerRow);
 
             // Create body rows (remaining rows)
             for (let i = 1; i < data.length; i++) {
                 const tr = document.createElement('tr');
-                const colCount = data[0].length; // Use header column count as reference
 
                 for (let j = 0; j < colCount; j++) {
                     const td = document.createElement('td');
@@ -676,7 +681,7 @@
             // If only header row was pasted, add one empty data row
             if (data.length === 1) {
                 const tr = document.createElement('tr');
-                for (let j = 0; j < data[0].length; j++) {
+                for (let j = 0; j < colCount; j++) {
                     const td = document.createElement('td');
                     td.contentEditable = 'true';
                     td.textContent = '';
@@ -739,39 +744,13 @@
         }
 
         function insertRow(index) {
-            const cols = table.rows[0].cells.length;
-            const newRow = table.insertRow(index);
-
-            // If inserting into thead (index 0), handle carefully, but usually we insert into tbody
-            // If index is 0 and it's a thead row, we usually mean insert above body row 0 or actually insert a new header?
-            // For simplicity, let's treat row 0 as Header. If user inserts above row 0, they make a new header? 
-            // Most MD tables only have 1 header. Let's assume standard behavior:
-            // If inserting at 0, we are prepending to whatever section we are in.
-
-            // Correction: table.insertRow(index) inserts into the table structure globally across thead/tbody in some browsers,
-            // but safer to find the parent (thead or tbody) and insert there.
-            // Let's stick to: Row 0 is THEAD. Everything else is TBODY.
-
-            if (index === 0) {
-                // Not allowing double headers easily in simple MD, let's just insert row 1 (top of body)
-                // Or if user really wants to insert above header, maybe blocked for this simple version.
-                // Let's redirect to index 1 if they try to insert above header to keep MD valid (Head + Body).
-                // But wait, user might want to add a row *below* header (which is index 1).
-
-                // Let's standardise:
-                // If target is Header (rowIndex 0), Insert Above -> Do nothing or Alert (One header only).
-                // Insert Below -> Insert at top of TBody.
-                if (activeCell.parentElement.parentElement.tagName === 'THEAD') {
-                    // Insert into TBody at index 0
-                    const tbody = table.querySelector('tbody');
-                    const r = tbody.insertRow(0);
-                    for (let i = 0; i < cols; i++) r.appendChild(createCell('td'));
-                    return;
-                }
-            }
-
-            for (let i = 0; i < cols; i++) {
-                newRow.appendChild(createCell('td'));
+            const header = table.rows[0];
+            // Keep the single header intact; inserting above it adds the first body row.
+            const newRow = table.insertRow(Math.max(1, index));
+            for (let i = 0; i < header.cells.length; i++) {
+                const cell = createCell('td');
+                cell.style.textAlign = header.cells[i].getAttribute('data-align') || 'left';
+                newRow.appendChild(cell);
             }
         }
 
@@ -821,6 +800,57 @@
 
         // --- Markdown Generation ---
 
+        function escapeMarkdownCell(cell) {
+            const text = cell.textContent.trim() || ' ';
+            const slash = String.fromCharCode(92);
+            const escapePipes = value => {
+                let result = '', slashes = 0;
+                for (const character of value) {
+                    if (character === slash) {
+                        slashes++;
+                        continue;
+                    }
+                    result += character === '|'
+                        ? slash.repeat(slashes * 2 + 1) + '|'
+                        : slash.repeat(slashes) + character;
+                    slashes = 0;
+                }
+                return result + slash.repeat(slashes);
+            };
+            const tickRuns = /`+/g;
+            let output = '', cursor = 0, opening;
+
+            // Code spans keep literal backslashes, unlike ordinary Markdown text.
+            while ((opening = tickRuns.exec(text))) {
+                let precedingSlashes = 0;
+                for (let i = opening.index - 1; i >= 0 && text[i] === slash; i--) precedingSlashes++;
+                if (precedingSlashes % 2) continue;
+                const delimiter = opening[0];
+                const contentStart = opening.index + delimiter.length;
+                const closingRuns = /`+/g;
+                closingRuns.lastIndex = contentStart;
+                let closing;
+                while ((closing = closingRuns.exec(text)) && closing[0] !== delimiter) {}
+                if (!closing) continue;
+
+                output += escapePipes(text.slice(cursor, opening.index));
+                let code = text.slice(contentStart, closing.index);
+                if (code.includes(slash) && code.includes('|')) {
+                    // Encoded HTML code preserves literal slashes next to pipes,
+                    // which GFM cannot represent exactly in backtick table cells.
+                    code = code.split(String.fromCharCode(10)).join(' ');
+                    if (code.startsWith(' ') && code.endsWith(' ') && /[^ ]/.test(code)) code = code.slice(1, -1);
+                    output += '<code>' + Array.from(code, character =>
+                        '&#' + character.codePointAt(0) + ';').join('') + '</code>';
+                } else {
+                    output += delimiter + code.split('|').join(slash + '|') + delimiter;
+                }
+                cursor = closing.index + delimiter.length;
+                tickRuns.lastIndex = cursor;
+            }
+            return output + escapePipes(text.slice(cursor));
+        }
+
         function generateMarkdown() {
             const rows = Array.from(table.rows);
             if (rows.length === 0) return;
@@ -833,7 +863,7 @@
             // Let's do a simple format first.
 
             // Process Header
-            const headers = Array.from(rows[0].cells).map(c => c.textContent.trim() || " ");
+            const headers = Array.from(rows[0].cells).map(escapeMarkdownCell);
             md += "| " + headers.join(" | ") + " |\n";
 
             // Process Alignment / Separator Row
@@ -848,7 +878,7 @@
 
             // Process Body
             for (let i = 1; i < rows.length; i++) {
-                const cells = Array.from(rows[i].cells).map(c => c.textContent.trim() || " ");
+                const cells = Array.from(rows[i].cells).map(escapeMarkdownCell);
                 md += "| " + cells.join(" | ") + " |\n";
             }
 
