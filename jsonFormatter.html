@@ -436,6 +436,7 @@
         let syntaxHighlightEnabled = true;
         let lineNumbersEnabled = false;
         let currentJSON = undefined; // undefined 表示尚無有效輸入；null 是合法 JSON 值
+        let currentJSONText = '';
         let currentIndent = 2; // 預設 2 空格縮排
 
         // Initialize
@@ -480,6 +481,69 @@
             handleInput();
         }
 
+        class JSONNumber {
+            constructor(source) {
+                this.source = source;
+            }
+        }
+
+        function parseJSONLosslessly(input) {
+            // Validate syntax, but never use native Number values for output.
+            const validation = JSON.parse(input);
+            let prefix = '__toolkit_json_number__';
+            const existingStrings = JSON.stringify(validation);
+            while (existingStrings.includes(prefix)) prefix += '_';
+            const numbers = [];
+            const numberPattern = /-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/y;
+            let transformed = '';
+            for (let i = 0; i < input.length;) {
+                if (input[i] === '"') {
+                    const start = i++;
+                    while (i < input.length) {
+                        const character = input[i++];
+                        if (character.charCodeAt(0) === 92) i++;
+                        else if (character === '"') break;
+                    }
+                    transformed += input.slice(start, i);
+                } else if (input[i] === '-' || /[0-9]/.test(input[i])) {
+                    numberPattern.lastIndex = i;
+                    const token = numberPattern.exec(input)[0];
+                    transformed += JSON.stringify(prefix + numbers.length);
+                    numbers.push(token);
+                    i += token.length;
+                } else transformed += input[i++];
+            }
+            return JSON.parse(transformed, (key, value) => {
+                if (typeof value === 'string' && value.startsWith(prefix)) {
+                    const index = value.slice(prefix.length);
+                    if (/^(0|[1-9][0-9]*)$/.test(index) && Number(index) < numbers.length) {
+                        return new JSONNumber(numbers[Number(index)]);
+                    }
+                }
+                return value;
+            });
+        }
+
+        function stringifyJSONLosslessly(value, spaces = 2) {
+            const gap = ' '.repeat(spaces);
+            const write = (item, depth) => {
+                if (item instanceof JSONNumber) return item.source;
+                if (item === null || typeof item !== 'object') return JSON.stringify(item);
+                const array = Array.isArray(item);
+                const entries = array ? item : Object.entries(item);
+                const open = array ? '[' : '{', close = array ? ']' : '}';
+                if (!entries.length) return open + close;
+                const indent = gap.repeat(depth + 1), closingIndent = gap.repeat(depth);
+                const values = entries.map(entry => array
+                    ? write(entry, depth + 1)
+                    : JSON.stringify(entry[0]) + (gap ? ': ' : ':') + write(entry[1], depth + 1));
+                return gap
+                    ? open + '\n' + indent + values.join(',\n' + indent) + '\n' + closingIndent + close
+                    : open + values.join(',') + close;
+            };
+            return write(value, 0);
+        }
+
         // Handle input changes
         function handleInput() {
             const input = document.getElementById('jsonInput').value.trim();
@@ -494,7 +558,7 @@
             }
 
             try {
-                currentJSON = JSON.parse(input);
+                currentJSON = parseJSONLosslessly(input);
                 showSuccess('✓ JSON 格式正確');
 
                 if (autoFormat) {
@@ -509,6 +573,8 @@
 
             } catch (error) {
                 currentJSON = undefined;
+                currentJSONText = '';
+                document.getElementById('copyFeedback').style.opacity = '0';
 
                 // 顯示詳細的錯誤訊息
                 const errorMsg = error.message;
@@ -520,7 +586,7 @@
                     <div style="color: var(--error-text); padding: 2rem; text-align: center;">
                         <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 1rem; display: block;"></i>
                         <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 0.5rem;">無法解析 JSON</div>
-                        <div style="font-size: 0.9rem; opacity: 0.8;">${errorMsg}</div>
+                        <div style="font-size: 0.9rem; opacity: 0.8;">${escapeHtml(errorMsg)}</div>
                         <div style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.6;">請檢查 JSON 語法是否正確</div>
                     </div>
                 `;
@@ -538,7 +604,7 @@
             }
 
             currentIndent = spaces; // 更新當前縮排大小
-            const formatted = JSON.stringify(currentJSON, null, spaces);
+            const formatted = stringifyJSONLosslessly(currentJSON, spaces);
             displayJSON(formatted);
             updateJSONPath('$');
             updateButtonStates(); // 更新按鈕狀態
@@ -546,6 +612,7 @@
 
         // Display JSON with optional syntax highlighting
         function displayJSON(jsonString) {
+            currentJSONText = jsonString;
             const output = document.getElementById('jsonOutput');
 
             if (syntaxHighlightEnabled && currentJSON !== undefined) {
@@ -587,6 +654,7 @@
 
         // Render JSON as a collapsible tree
         function renderJSONTree(obj, indent = 0) {
+            if (obj instanceof JSONNumber) return renderPrimitiveValue(obj);
             const indentUnit = ' '.repeat(currentIndent); // 使用 currentIndent 動態計算
             const indentStr = indentUnit.repeat(indent);
             const nextIndentStr = indentUnit.repeat(indent + 1);
@@ -644,6 +712,7 @@
 
         // Render a JSON value (handles both primitives and complex types)
         function renderValue(value, indent) {
+            if (value instanceof JSONNumber) return renderPrimitiveValue(value);
             if (value === null) {
                 return `<span class="json-null">null</span>`;
             }
@@ -657,6 +726,7 @@
 
         // Render primitive values (string, number, boolean)
         function renderPrimitiveValue(value) {
+            if (value instanceof JSONNumber) return `<span class="json-number">${value.source}</span>`;
             if (typeof value === 'string') {
                 const escaped = escapeHtml(JSON.stringify(value));
                 return `<span class="json-string">${escaped}</span>`;
@@ -705,7 +775,7 @@
             text.textContent = syntaxHighlightEnabled ? '語法高亮 ✓' : '語法高亮';
 
             if (currentJSON !== undefined) {
-                const formatted = JSON.stringify(currentJSON, null, currentIndent);
+                const formatted = stringifyJSONLosslessly(currentJSON, currentIndent);
                 displayJSON(formatted);
             }
         }
@@ -721,7 +791,7 @@
                 text.textContent = '行號 ✓';
                 // 重新顯示 JSON 內容以確保行號與內容同步
                 if (currentJSON !== undefined) {
-                    const formatted = JSON.stringify(currentJSON, null, currentIndent);
+                    const formatted = stringifyJSONLosslessly(currentJSON, currentIndent);
                     displayJSON(formatted);
                 }
             } else {
@@ -769,11 +839,10 @@
 
         // Copy JSON to clipboard
         function copyJSON() {
-            const output = document.getElementById('jsonOutput');
-            const text = output.textContent;
+            const text = currentJSONText;
 
-            if (!text) {
-                showError('沒有可複製的內容');
+            if (currentJSON === undefined || !text) {
+                showError('請先輸入有效的 JSON 才能複製');
                 return;
             }
 
@@ -794,7 +863,7 @@
             status.innerHTML = `
                 <div class="error-message">
                     <i class="fas fa-exclamation-circle mr-2"></i>
-                    ${message}
+                    ${escapeHtml(message)}
                 </div>
             `;
         }
@@ -805,13 +874,15 @@
             status.innerHTML = `
                 <div class="success-message">
                     <i class="fas fa-check-circle mr-2"></i>
-                    ${message}
+                    ${escapeHtml(message)}
                 </div>
             `;
         }
 
         // Clear output
         function clearOutput() {
+            currentJSONText = '';
+            document.getElementById('copyFeedback').style.opacity = '0';
             document.getElementById('jsonOutput').textContent = '';
             document.getElementById('lineNumbers').innerHTML = '';
         }
